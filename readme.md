@@ -27,3 +27,4 @@ Very rudimentary simulation of __high-dimensional stimulation__'s effects on loc
 - TODO determine what "spontaneous" input looks like
 - NOTE Currently not considering the morphology of neurons (may be doable by using the compartmental model) nor the electrode area|size.
 - TODO Need to tune the neuron parameters such as synaptic weights, conductance, etc.; also need to tune the decay of stimulation current as a function of distance to neurons. (The scales of these values could stray away from actual experimental results, but as long as the result holds up, that should not be a critical concern?)
+- Embed the (N,T) neural response profile into lower dimensions for better interpretation
