@@ -9,11 +9,12 @@ class Electrodes:
     def __init__(self, ch_coordinates : np.ndarray, current_disperse_func: callable):
         """
         ch_coordinates : (n_chs, 2) ndarray of channel coordinates
-        current_disperse_func : function(amp, distance) -> amp at distance; should support broadcasting
+        current_disperse_func : function(amp_uA, distance_um) -> amp_pA at distance; should support broadcasting
         """
         self.n_chs = len(ch_coordinates)
         self.ch_coordinates = ch_coordinates
         self.current_disperse_func = current_disperse_func
+        self.stim_onset_times_by_ch = {}
     
     # @staticmethod
     def set_biphasic_pulsetrain(self, stim_ch_params, **kwargs):
@@ -52,6 +53,7 @@ class Electrodes:
             onset_time_ms = stim_param['onset_time_ms']
             if onset_time_ms == 0:
                 current_changepoints_by_ch[ch_idx] = []
+            self.stim_onset_times_by_ch[ch_idx] = []
             for ipulse in range(npulses):
                 # theare are 4 change points
                 t0 = onset_time_ms + ipulse * 1000/freq_hz # onset cathodic phase
@@ -62,8 +64,9 @@ class Electrodes:
                 current_changepoints_by_ch[ch_idx].append([t1, 0])
                 current_changepoints_by_ch[ch_idx].append([t2, ampl_ua*UA2PA])
                 current_changepoints_by_ch[ch_idx].append([t3, 0])
+                self.stim_onset_times_by_ch[ch_idx].append(t0)
         self.current_changepoints_by_ch = [np.array(x) for x in current_changepoints_by_ch]
-        print(self.current_changepoints_by_ch)
+        # print(self.current_changepoints_by_ch)
     
     def get_current_at_locs(self, locs):
         """
@@ -84,7 +87,6 @@ class Electrodes:
         distx_ch2loc = np.subtract.outer(self.ch_coordinates[:, 0], locs[:, 0]) # (n_chs, n_locs)
         disty_ch2loc = np.subtract.outer(self.ch_coordinates[:, 1], locs[:, 1]) # (n_chs, n_locs)
         distance_ch2loc = np.sqrt(distx_ch2loc**2+disty_ch2loc**2) # (n_chs, n_locs)
-        print(distance_ch2loc.shape)
         currents_ch2loc = []
         for ch_idx in range(self.n_chs):
             ch_current_vals = self.current_changepoints_by_ch[ch_idx][:, 1] # (n_changepoints)
@@ -94,30 +96,34 @@ class Electrodes:
         # currents_ch2loc is [n_chs] list of (n_locs, n_changepoints) arrays
         # TODO consider using the full timestamps instead of just the change points for more regular data shape
 
-        # then iterate over the locations and sum up the currents from all channels
         current_generators = []
-        for i_loc, loc in enumerate(locs):
+        
+        for i_loc in range(locs.shape[0]):  # Iterate over locations (neurons)
             current_changepoints_all = []
+    
             for ch_idx in range(self.n_chs):
-                current_times_ch = self.current_changepoints_by_ch[ch_idx][:, 0] # (n_changepoints)
-                current_vals_ch = currents_ch2loc[ch_idx][i_loc, :] # (n_changepoints)
-                assert len(current_times_ch) == len(current_vals_ch)
-                current_changepoints_all.extend(list(zip(current_times_ch, current_vals_ch)))
-            # current_changepoints_all is a [n_changpoints] list of (time, current) tuples
-            current_times_reduced = []
-            current_vals_reduced = [] 
-            for time, currents in sort_and_groupby(current_changepoints_all, key=lambda x: round(x[0]/nest.resolution)*nest.resolution):
-                current_times_reduced.append(time)
-                current_vals_reduced.append(sum([current for _, current in currents]))
-            # TODO eliminate the diff-0 "change points"
-            # print(current_times_reduced)
+                current_times_ch = self.current_changepoints_by_ch[ch_idx][:, 0]  # (n_changepoints)
+                current_vals_ch = currents_ch2loc[ch_idx][i_loc, :]  # (n_changepoints)
+                current_changepoints_all.append(np.column_stack((current_times_ch, current_vals_ch)))
+            
+            current_changepoints_all = np.vstack(current_changepoints_all)
+        
+            times_rounded = np.round(current_changepoints_all[:, 0] / nest.resolution) * nest.resolution
+            unique_times, inverse_indices = np.unique(times_rounded, return_inverse=True)
+            
+            current_vals_reduced = np.zeros_like(unique_times)
+            np.add.at(current_vals_reduced, inverse_indices, current_changepoints_all[:, 1])
+            
             gen = nest.Create(
-                "step_current_generator", 
+                "step_current_generator",
                 params=dict(
-                    label="current_delivery_at_loc_%d"%(i_loc),
-                    amplitude_times=current_times_reduced,
+                    label=f"current_delivery_at_loc_{i_loc}",
+                    amplitude_times=unique_times,
                     amplitude_values=current_vals_reduced
                 )
             )
             current_generators.append(gen)
+        
         return current_generators
+
+        # return current_generators
