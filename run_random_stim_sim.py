@@ -93,14 +93,14 @@ spike_rates = dim.get_dimensionality(spike_trains, sim_time_ms)
 
 # Manually fill in dim values
 dims = [36, 43, 49, 52, 57, 57]  # Dimensionality values
-stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
+stim_channel_cnts = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 
 plt.figure(figsize=(8, 5))
-plt.plot(stim_channels, dims, marker='o', label="Evoked Dimensionality")
+plt.plot(stim_channel_cnts, dims, marker='o', label="Evoked Dimensionality")
 plt.axhline(60, color='r', linestyle='--', label="Baseline Dimensionality")  # Add baseline reference line
 
 # Set x-axis tick labels
-plt.xticks(stim_channels, labels=stim_channels)
+plt.xticks(stim_channel_cnts, labels=stim_channel_cnts)
 
 # Add labels and title
 plt.xlabel('Number of Stimulated Channels')
@@ -121,3 +121,4 @@ for p in stim_channels:
 for n in range(n_neurons):
     ax.scatter(*neuron_coordinates[n, :], c="green", marker="s", s=12.5)
 ax.set_aspect("equal")
+plt.show()

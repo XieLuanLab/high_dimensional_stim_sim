@@ -16,6 +16,9 @@ Very rudimentary simulation of __high-dimensional stimulation__'s effects on loc
 - electrodes.py -- define class Electrodes
 - network.py    -- define neuronal populations
 - utils.py      -- other utility functions
+# Main runnable scripts
+- run_random_stim_sim.py        -- run simulations with random stim on random neuronal circuits.
+- run_random_stim_corcol_sim.py -- run simulations with random stim on circuits mimicking a layered cortical column (TODO: perform dim reduc on readout; needs a little bit additional time because the output spike train format is different from `run_random_stim_sim.py`)
 
 
 ## Dependency
