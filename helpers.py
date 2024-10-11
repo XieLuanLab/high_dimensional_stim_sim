@@ -250,7 +250,7 @@ def plot_raster(path, name, begin, end, N_scaling):
     for i, n in enumerate(sd_names):
         times = data[i]['time_ms']
         neurons = np.abs(data[i]['sender'] - last_node_id) + 1
-        plt.plot(times[::stp], neurons[::stp], '.', color=color_list[i], markersize=1.0)
+        plt.plot(times[::stp], neurons[::stp], '.', color=color_list[i], markersize=0.1)
     plt.xlabel('time [ms]', fontsize=fs)
     plt.xlim([begin, end])
     plt.xticks(fontsize=fs)
@@ -262,13 +262,21 @@ def plot_raster(path, name, begin, end, N_scaling):
     for i, n in enumerate(sd_names):
         times = data[i]['time_ms']
         neurons = np.abs(data[i]['sender'] - last_node_id) + 1
-        for neuron_id, spike_indices in groupby(sorted(range(len(neurons)), key=neurons.__getitem__)):
+        for neuron_id, spike_indices in groupby(sorted(range(len(neurons)), key=neurons.__getitem__), key=neurons.__getitem__):
             # one spike stamp file per neuron
             stamp = times[list(spike_indices)]
-            neuron_name = "neuron%d_%s"%(neuron_id, n)
+            neuron_name = "neuron%d"%(neuron_id)
+            # neuron_name = "neuron%d_%s"%(neuron_id, n)
             assert neuron_name not in all_neuron_stamps
             all_neuron_stamps[neuron_name] = stamp
-    np.savez(os.path.join(path, "spike_stamp_msec_%s.npz"%(name)), **all_neuron_stamps)
+            # if neuron_name not in all_neuron_stamps:
+            #     all_neuron_stamps[neuron_name] = [stamp]
+            # else:
+            #     all_neuron_stamps[neuron_name].append(stamp)
+    # for k, v in all_neuron_stamps.items():
+    #     all_neuron_stamps[k] = np.concatenate(v)
+    print("Total neurons:", len(all_neuron_stamps))
+    # np.savez(os.path.join(path, "spike_stamp_msec_%s.npz"%(name)), **all_neuron_stamps)
 
 
 
@@ -551,3 +559,5 @@ def __load_spike_times(path, name, begin, end):
         high = np.searchsorted(data_i_raw['time_ms'], v=end, side='right')
         data[i] = data_i_raw[low:high]
     return sd_names, node_ids, data
+
+load_spike_times = __load_spike_times

@@ -4,6 +4,8 @@ import nest
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+import matplotlib
+matplotlib.use('Agg')
 
 from network_cortcol import Network
 import utils as utils
@@ -72,8 +74,17 @@ for n_groups in [32, 8, 4, 2]:
     ax.set_aspect("equal")
     plt.savefig(os.path.join(sim_dict["data_path"], f"probe_{n_groups}groups.png"))
     plt.close()
+
     plt.figure()
     ax = plt.subplot(111)
     electrodes.plot_stim_raster(ax=ax, time_range_ms = [0, tsim_ms])
     plt.savefig(os.path.join(sim_dict["data_path"], f"stim_raster_{n_groups}groups.png"))
+    plt.close()
+
+    plt.figure()
+    ax = plt.subplot(111)
+    stamps = network.get_spktrains()
+    for k, v in stamps.items():
+        ax.plot(v, np.ones_like(v)*k, 'k.', markersize=0.1)
+    plt.savefig(os.path.join(sim_dict["data_path"], f"tmp_stamps_corcol_{n_groups}groups.png"))
     plt.close()
