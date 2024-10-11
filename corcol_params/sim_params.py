@@ -32,9 +32,9 @@ sim_dict = {
     # The full simulation time is the sum of a presimulation time and the main
     # simulation time.
     # presimulation time (in ms)
-    't_presim': 500.0,
+    't_presim': 10000.0,
     # simulation time (in ms)
-    't_sim': 1000.0,
+    't_sim': 20000.0,
     # resolution of the simulation (in ms)
     'sim_resolution': 0.1,
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can

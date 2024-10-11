@@ -74,7 +74,7 @@ class RandomStimElectrodes:
         for group in channels_per_group:
             # Generate random stimulation times using Poisson process for the group
             stim_times = []
-            current_time = np.random.exponential(1/lambda_poisson)  # First event
+            current_time = max(min_pulse_spacing, np.random.exponential(1/lambda_poisson))  # First event (NEST requires it to be a strictly positive time)
             while current_time < duration_ms:
                 stim_times.append(round(current_time / min_pulse_spacing) * min_pulse_spacing)
                 current_time += max(min_pulse_spacing, np.random.exponential(1/lambda_poisson))  # Time to next event
@@ -192,4 +192,3 @@ class RandomStimElectrodes:
         ax.set_yticklabels([str(ch_idx) for ch_idx in stim_channel_indices])
         ax.set_xlabel("Time (ms)")
         ax.set_ylabel("Stim channel index")
-  

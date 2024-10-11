@@ -36,6 +36,7 @@ import nest
 import helpers
 import warnings
 import numpy as np
+from itertools import groupby
 
 from scipy.signal import savgol_filter
 
@@ -74,7 +75,7 @@ class Network:
                 if self.sim_dict['overwrite_files']:
                     message += ' Old data will be overwritten.'
             else:
-                os.mkdir(self.data_path)
+                os.makedirs(self.data_path, exist_ok=True)
                 message = '  Directory has been created.'
             print('Data will be written to: {}\n{}\n'.format(self.data_path,
                                                              message))
@@ -184,12 +185,19 @@ class Network:
         nest.Simulate(time_ms)
 
     def get_spktrains(self):
-        raise NotImplementedError
         sd_names, node_ids, data = helpers.__load_spike_times(self.data_path, 'spike_recorder', 0, np.inf)
-        spk_trains = [[] for _ in range(self.n_neurons)]
+        last_node_id = node_ids[-1, -1]
+        all_neuron_stamps = {}
         for i_pop, sd_name in enumerate(sd_names):
-            # sd_name is the name of the spike detector that records the population
-            pass
+            times = data[i_pop]['time_ms']
+            neurons = np.abs(data[i_pop]['sender'] - last_node_id) + 1
+            for neuron_id, spike_indices in groupby(sorted(range(len(neurons)), key=neurons.__getitem__)):
+                # one spike stamp file per neuron
+                stamp = times[list(spike_indices)]
+                neuron_name = "neuron%d_%s"%(neuron_id, sd_name)
+                assert neuron_name not in all_neuron_stamps
+                all_neuron_stamps[neuron_name] = stamp
+        return all_neuron_stamps
 
     def evaluate(self, raster_plot_interval, firing_rates_interval):
         """ Displays simulation results.
@@ -441,7 +449,7 @@ class Network:
 
         self.poisson_bg_input = []
         for i in range(self.num_pops):
-            rate_times = np.arange(10, 1400, 20).astype(float)
+            rate_times = np.arange(10, self.sim_dict["t_sim"]+self.sim_dict["t_presim"]+1, 20).astype(float)
             rate_values = self.np_rng.normal(loc=self.net_dict["bg_rate"], scale=self.net_dict["bg_rate_std"], size=rate_times.shape)
             rate_values = np.clip(rate_values, a_min=0, a_max=200)
             pbi = nest.Create(

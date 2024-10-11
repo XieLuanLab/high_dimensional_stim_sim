@@ -31,23 +31,23 @@ stim_pulse_params = {
 
 # Network
 nest.ResetKernel()
-sim_dict["data_path"] = os.path.join(os.getcwd(), 'data_baseline/')
+sim_dict["data_path"] = os.path.join(os.getcwd(), 'data20241011/data_baseline20241011')
 network = Network(sim_dict, net_dict, stim_dict)
 network.create()
 network.connect()
 print("Total #neurons actually simulated:", network.n_neurons)
 # exit(0)
 # baseline
-tsim_ms = 1000
+tsim_ms = sim_dict["t_presim"]+sim_dict["t_sim"]
 # tbin_ms = 20
-# network.simulate_baseline(tsim_ms)
-# network.evaluate([0, tsim_ms], [0, tsim_ms])
+network.simulate_baseline(tsim_ms)
+network.evaluate([0, tsim_ms], [0, tsim_ms])
 
 # Random stimulation
 for n_groups in [32, 8, 4, 2]:
     nest.ResetKernel()
     electrodes = RandomStimElectrodes(ch_coordinates, stim_pulse_params, amp_decay_func)
-    sim_dict["data_path"] = os.path.join(os.getcwd(), f'data_randstim_{n_groups}groups/')
+    sim_dict["data_path"] = os.path.join(os.getcwd(), f'data20241011/data_randstim_{n_groups}groups/')
     network = Network(sim_dict, net_dict, stim_dict)
     network.create()
     network.connect()

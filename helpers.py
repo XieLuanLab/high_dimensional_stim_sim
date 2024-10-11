@@ -31,6 +31,7 @@ from matplotlib.patches import Polygon
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from itertools import groupby
 if 'DISPLAY' not in os.environ:
     import matplotlib
     matplotlib.use('Agg')
@@ -245,6 +246,7 @@ def plot_raster(path, name, begin, end, N_scaling):
         print('  Only spikes of neurons in steps of {} are shown.'.format(stp))
 
     plt.figure(figsize=(8, 6))
+    print(sd_names)
     for i, n in enumerate(sd_names):
         times = data[i]['time_ms']
         neurons = np.abs(data[i]['sender'] - last_node_id) + 1
@@ -255,6 +257,20 @@ def plot_raster(path, name, begin, end, N_scaling):
     plt.yticks(label_pos, ylabels, fontsize=fs)
     plt.savefig(os.path.join(path, 'raster_plot_%s.png'%(name)), dpi=300)
     plt.close()
+    # save the firing stamps for each unit
+    all_neuron_stamps = {}
+    for i, n in enumerate(sd_names):
+        times = data[i]['time_ms']
+        neurons = np.abs(data[i]['sender'] - last_node_id) + 1
+        for neuron_id, spike_indices in groupby(sorted(range(len(neurons)), key=neurons.__getitem__)):
+            # one spike stamp file per neuron
+            stamp = times[list(spike_indices)]
+            neuron_name = "neuron%d_%s"%(neuron_id, n)
+            assert neuron_name not in all_neuron_stamps
+            all_neuron_stamps[neuron_name] = stamp
+    np.savez(os.path.join(path, "spike_stamp_msec_%s.npz"%(name)), **all_neuron_stamps)
+
+
 
 def psth_from_stamps(ts, evs, binsize_ms, end_time, return_hz=False, avg_across_pop=False):
     if len(ts)>0:
@@ -488,7 +504,7 @@ def __gather_metadata(path, name):
                 sd_names.append(fnsplit)
 
     # load node IDs
-    node_idfile = open(path + 'population_nodeids.dat', 'r')
+    node_idfile = open(os.path.join(path, 'population_nodeids.dat'), 'r')
     node_ids = []
     for node_id in node_idfile:
         node_ids.append(node_id.split())
