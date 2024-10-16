@@ -27,14 +27,17 @@ microcircuit.
 
 """
 
-from matplotlib.patches import Polygon
-import matplotlib.pyplot as plt
 import os
-import numpy as np
 from itertools import groupby
-if 'DISPLAY' not in os.environ:
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Polygon
+
+if "DISPLAY" not in os.environ:
     import matplotlib
-    matplotlib.use('Agg')
+
+    matplotlib.use("Agg")
 
 
 def num_synapses_from_conn_probs(conn_probs, popsize1, popsize2):
@@ -58,12 +61,12 @@ def num_synapses_from_conn_probs(conn_probs, popsize1, popsize2):
         Matrix of synapse numbers.
     """
     prod = np.outer(popsize1, popsize2)
-    num_synapses = np.log(1. - conn_probs) / np.log((prod - 1.) / prod)
+    num_synapses = np.log(1.0 - conn_probs) / np.log((prod - 1.0) / prod)
     return num_synapses
 
 
 def postsynaptic_potential_to_current(C_m, tau_m, tau_syn):
-    r""" Computes a factor to convert postsynaptic potentials to currents.
+    r"""Computes a factor to convert postsynaptic potentials to currents.
 
     The time course of the postsynaptic potential ``v`` is computed as
     :math: `v(t)=(i*h)(t)`
@@ -106,16 +109,16 @@ def postsynaptic_potential_to_current(C_m, tau_m, tau_syn):
         (in pA).
 
     """
-    sub = 1. / (tau_syn - tau_m)
+    sub = 1.0 / (tau_syn - tau_m)
     pre = tau_m * tau_syn / C_m * sub
     frac = (tau_m / tau_syn) ** sub
 
-    PSC_over_PSP = 1. / (pre * (frac**tau_m - frac**tau_syn))
+    PSC_over_PSP = 1.0 / (pre * (frac**tau_m - frac**tau_syn))
     return PSC_over_PSP
 
 
 def dc_input_compensating_poisson(bg_rate, K_ext, tau_syn, PSC_ext):
-    """ Computes DC input if no Poisson input is provided to the microcircuit.
+    """Computes DC input if no Poisson input is provided to the microcircuit.
 
     Parameters
     ----------
@@ -138,18 +141,19 @@ def dc_input_compensating_poisson(bg_rate, K_ext, tau_syn, PSC_ext):
 
 
 def adjust_weights_and_input_to_synapse_scaling(
-        full_num_neurons,
-        full_num_synapses,
-        K_scaling,
-        mean_PSC_matrix,
-        PSC_ext,
-        tau_syn,
-        full_mean_rates,
-        DC_amp,
-        poisson_input,
-        bg_rate,
-        K_ext):
-    """ Adjusts weights and external input to scaling of indegrees.
+    full_num_neurons,
+    full_num_synapses,
+    K_scaling,
+    mean_PSC_matrix,
+    PSC_ext,
+    tau_syn,
+    full_mean_rates,
+    DC_amp,
+    poisson_input,
+    bg_rate,
+    K_ext,
+):
+    """Adjusts weights and external input to scaling of indegrees.
 
     The recurrent and external weights are adjusted to the scaling
     of the indegrees. Extra DC input is added to compensate for the
@@ -194,22 +198,19 @@ def adjust_weights_and_input_to_synapse_scaling(
     PSC_ext_new = PSC_ext / np.sqrt(K_scaling)
 
     # recurrent input of full network
-    indegree_matrix = \
-        full_num_synapses / full_num_neurons[:, np.newaxis]
-    input_rec = np.sum(mean_PSC_matrix * indegree_matrix * full_mean_rates,
-                       axis=1)
+    indegree_matrix = full_num_synapses / full_num_neurons[:, np.newaxis]
+    input_rec = np.sum(mean_PSC_matrix * indegree_matrix * full_mean_rates, axis=1)
 
-    DC_amp_new = DC_amp \
-        + 0.001 * tau_syn * (1. - np.sqrt(K_scaling)) * input_rec
+    DC_amp_new = DC_amp + 0.001 * tau_syn * (1.0 - np.sqrt(K_scaling)) * input_rec
 
     if poisson_input:
         input_ext = PSC_ext * K_ext * bg_rate
-        DC_amp_new += 0.001 * tau_syn * (1. - np.sqrt(K_scaling)) * input_ext
+        DC_amp_new += 0.001 * tau_syn * (1.0 - np.sqrt(K_scaling)) * input_ext
     return PSC_matrix_new, PSC_ext_new, DC_amp_new
 
 
-def plot_raster(path, name, begin, end, N_scaling):
-    """ Creates a spike raster plot of the network activity.
+def plot_raster(path, name, begin, end, N_scaling, title=None):
+    """Creates a spike raster plot of the network activity.
 
     Parameters
     -----------
@@ -229,43 +230,49 @@ def plot_raster(path, name, begin, end, N_scaling):
     None
 
     """
-    fs = 18  # fontsize
-    ylabels = ['L2/3', 'L4', 'L5', 'L6']
-    color_list = np.tile(['#595289', '#af143c'], 4)
+    fs = 12  # fontsize
+    ylabels = ["L2/3", "L4", "L5", "L6"]
+    color_list = np.tile(["#595289", "#af143c"], 4)
 
     sd_names, node_ids, data = __load_spike_times(path, name, begin, end)
     last_node_id = node_ids[-1, -1]
     mod_node_ids = np.abs(node_ids - last_node_id) + 1
 
-    label_pos = [(mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.
-                 for i in np.arange(0, 8, 2)]
+    label_pos = [
+        (mod_node_ids[i, 0] + mod_node_ids[i + 1, 1]) / 2.0 for i in np.arange(0, 8, 2)
+    ]
 
     stp = 1
     if N_scaling > 0.1:
-        stp = int(10. * N_scaling)
-        print('  Only spikes of neurons in steps of {} are shown.'.format(stp))
+        stp = int(10.0 * N_scaling)
+        print("  Only spikes of neurons in steps of {} are shown.".format(stp))
 
     plt.figure(figsize=(8, 6))
     print(sd_names)
     for i, n in enumerate(sd_names):
-        times = data[i]['time_ms']
-        neurons = np.abs(data[i]['sender'] - last_node_id) + 1
-        plt.plot(times[::stp], neurons[::stp], '.', color=color_list[i], markersize=0.1)
-    plt.xlabel('time [ms]', fontsize=fs)
+        times = data[i]["time_ms"]
+        neurons = np.abs(data[i]["sender"] - last_node_id) + 1
+        plt.plot(times[::stp], neurons[::stp], "|", color=color_list[i], markersize=1)
+    plt.xlabel("time [ms]", fontsize=fs)
     plt.xlim([begin, end])
     plt.xticks(fontsize=fs)
     plt.yticks(label_pos, ylabels, fontsize=fs)
-    plt.savefig(os.path.join(path, 'raster_plot_%s.png'%(name)), dpi=300)
-    plt.close()
+    if title:
+        plt.title(title)
+    plt.savefig(os.path.join(path, "raster_plot_%s.png" % (name)), dpi=300)
+    # plt.close()
     # save the firing stamps for each unit
     all_neuron_stamps = {}
     for i, n in enumerate(sd_names):
-        times = data[i]['time_ms']
-        neurons = np.abs(data[i]['sender'] - last_node_id) + 1
-        for neuron_id, spike_indices in groupby(sorted(range(len(neurons)), key=neurons.__getitem__), key=neurons.__getitem__):
+        times = data[i]["time_ms"]
+        neurons = np.abs(data[i]["sender"] - last_node_id) + 1
+        for neuron_id, spike_indices in groupby(
+            sorted(range(len(neurons)), key=neurons.__getitem__),
+            key=neurons.__getitem__,
+        ):
             # one spike stamp file per neuron
             stamp = times[list(spike_indices)]
-            neuron_name = "neuron%d"%(neuron_id)
+            neuron_name = "neuron%d" % (neuron_id)
             # neuron_name = "neuron%d_%s"%(neuron_id, n)
             assert neuron_name not in all_neuron_stamps
             all_neuron_stamps[neuron_name] = stamp
@@ -279,27 +286,29 @@ def plot_raster(path, name, begin, end, N_scaling):
     # np.savez(os.path.join(path, "spike_stamp_msec_%s.npz"%(name)), **all_neuron_stamps)
 
 
-
-def psth_from_stamps(ts, evs, binsize_ms, end_time, return_hz=False, avg_across_pop=False):
-    if len(ts)>0:
+def psth_from_stamps(
+    ts, evs, binsize_ms, end_time, return_hz=False, avg_across_pop=False
+):
+    if len(ts) > 0:
         t = max(np.max(ts), end_time)
     else:
         t = end_time
-    nbins = int(np.ceil(t/binsize_ms))
-    bin_edges = np.arange(0, nbins+1)*binsize_ms
-    if len(ts)==0:
-        return np.zeros(len(bin_edges)-1), bin_edges
+    nbins = int(np.ceil(t / binsize_ms))
+    bin_edges = np.arange(0, nbins + 1) * binsize_ms
+    if len(ts) == 0:
+        return np.zeros(len(bin_edges) - 1), bin_edges
     ret, _ = np.histogram(ts, bin_edges)
     if avg_across_pop:
         ret = ret / np.unique(evs).shape[0]
     if return_hz:
-        return ret/binsize_ms*1000, bin_edges
+        return ret / binsize_ms * 1000, bin_edges
     else:
         return ret, bin_edges
-    
-def plot_psth(path, name, begin, end):
+
+
+def plot_psth(path, name, begin, end, title=None):
     fs = 12  # fontsize
-    pop_names = ['L2/3E', 'L2/3I', 'L4E', 'L4I', 'L5E', 'L5I', 'L6E', 'L6I']
+    pop_names = ["L2/3E", "L2/3I", "L4E", "L4I", "L5E", "L5I", "L6E", "L6I"]
     n_pops = len(pop_names)
     # color_list = np.tile(['#595289', '#af143c'], 4)
 
@@ -307,12 +316,12 @@ def plot_psth(path, name, begin, end):
     # last_node_id = node_ids[-1, -1]
     spk_stamps_by_pop = [[] for _ in range(node_ids.shape[0])]
     spk_labels_by_pop = [[] for _ in range(node_ids.shape[0])]
-    n_neurons_by_pop = [y-x+1 for (x,y) in node_ids]
+    n_neurons_by_pop = [y - x + 1 for (x, y) in node_ids]
     for i_, n in enumerate(sd_names):
-        times   = data[i_]['time_ms']
-        senders = data[i_]['sender']
+        times = data[i_]["time_ms"]
+        senders = data[i_]["sender"]
         for i_pop_, (lbl_beg, lbl_end) in enumerate(node_ids):
-            tmp_pop_mask = ( (senders>=lbl_beg) & (senders<=lbl_end) )
+            tmp_pop_mask = (senders >= lbl_beg) & (senders <= lbl_end)
             spk_stamps_by_pop[i_pop_].extend(times[tmp_pop_mask])
             spk_labels_by_pop[i_pop_].extend(senders[tmp_pop_mask])
 
@@ -322,36 +331,33 @@ def plot_psth(path, name, begin, end):
         tmp_stamps = np.array(spk_stamps_by_pop[i_pop_])[ids_sorted_]
         tmp_labels = np.array(spk_labels_by_pop[i_pop_])[ids_sorted_]
         psth_tmp, bin_edges = psth_from_stamps(
-            tmp_stamps, tmp_labels, 5, end, 
-            return_hz=True, 
-            avg_across_pop=False
+            tmp_stamps, tmp_labels, 5, end, return_hz=True, avg_across_pop=False
         )
         psth_tmp = psth_tmp / n_neurons_by_pop[i_pop_]
-        bin_centers = (bin_edges[:-1] + bin_edges[1:])/2
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
         psth_by_pop.append((bin_centers, psth_tmp))
-
 
     plt.figure(figsize=(8, 6))
     # max_psth_val = max([max(k) for _, k in psth_by_pop])
     for i_pop_, (bin_times, psth_rates) in enumerate(psth_by_pop):
-        plt.subplot(n_pops, 1, i_pop_+1)
-        plt.plot(bin_times, psth_rates, color='k', label=pop_names[i_pop_])
+        plt.subplot(n_pops, 1, i_pop_ + 1)
+        plt.plot(bin_times, psth_rates, color="k", label=pop_names[i_pop_])
         # plt.ylim([0, max_psth_val])
 
         plt.xlim([begin, end])
         plt.legend()
-        if i_pop_ < n_pops-1:
+        if i_pop_ < n_pops - 1:
             plt.xticks([])
         plt.yticks([np.min(psth_rates), np.max(psth_rates)], fontsize=fs)
-    plt.xlabel('Time [ms]', fontsize=fs)
-    plt.ylabel('Avg. firing rate [Hz]', fontsize=fs)
+    plt.xlabel("Time [ms]", fontsize=fs)
+    plt.ylabel("Avg. firing rate [Hz]", fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
-    plt.savefig(os.path.join(path, 'psth_%s.png'%(name)), dpi=300)
+    if title:
+        plt.suptitle(title)
+    plt.savefig(os.path.join(path, "psth_%s.png" % (name)), dpi=300)
     plt.close()
 
-
-    
 
 # def plot_psth_thal(path, name, begin, end, N_scaling):
 #     fs = 18  # fontsize
@@ -369,9 +375,10 @@ def plot_psth(path, name, begin, end):
 #     plt.savefig(os.path.join(path, 'psth_thal.png'), dpi=300)
 #     plt.close()
 
+
 def plot_thal(rate_times, rate_values, data_path):
     plt.figure(figsize=(6, 1))
-    plt.plot(rate_times, rate_values, color='k')
+    plt.plot(rate_times, rate_values, color="k")
     plt.xlim([0, 1400])
     plt.xticks([])
     plt.gca().set_yticks([0, 30, 60])
@@ -379,8 +386,9 @@ def plot_thal(rate_times, rate_values, data_path):
     plt.savefig(os.path.join(data_path, "thal_fr_designed.png"))
     plt.close()
 
+
 def firing_rates(path, name, begin, end):
-    """ Computes mean and standard deviation of firing rates per population.
+    """Computes mean and standard deviation of firing rates per population.
 
     The firing rate of each neuron in each population is computed and stored
     in a .dat file in the directory of the spike recorders. The mean firing
@@ -406,23 +414,25 @@ def firing_rates(path, name, begin, end):
     all_mean_rates = []
     all_std_rates = []
     for i, n in enumerate(sd_names):
-        senders = data[i]['sender']
+        senders = data[i]["sender"]
         # 1 more bin than node ids per population
         bins = np.arange(node_ids[i, 0], node_ids[i, 1] + 2)
         spike_count_per_neuron, _ = np.histogram(senders, bins=bins)
-        rate_per_neuron = spike_count_per_neuron * 1000. / (end - begin)
-        np.savetxt(os.path.join(path, ('rate' + str(i) + '.dat')),
-                   rate_per_neuron)
+        rate_per_neuron = spike_count_per_neuron * 1000.0 / (end - begin)
+        np.savetxt(os.path.join(path, ("rate" + str(i) + ".dat")), rate_per_neuron)
         # zeros are included
         all_mean_rates.append(np.mean(rate_per_neuron))
         all_std_rates.append(np.std(rate_per_neuron))
-    print('Mean rates: {} spikes/s'.format(np.around(all_mean_rates, decimals=3)))
-    print('Standard deviation of rates: {} spikes/s'.format(
-        np.around(all_std_rates, decimals=3)))
+    print("Mean rates: {} spikes/s".format(np.around(all_mean_rates, decimals=3)))
+    print(
+        "Standard deviation of rates: {} spikes/s".format(
+            np.around(all_std_rates, decimals=3)
+        )
+    )
 
 
-def boxplot(path, populations):
-    """ Creates a boxblot of the firing rates of all populations.
+def boxplot(path, populations, title=None):
+    """Creates a boxblot of the firing rates of all populations.
 
     To create the boxplot, the firing rates of each neuron in each population
     need to be computed with the function ``firing_rate()``.
@@ -440,29 +450,38 @@ def boxplot(path, populations):
 
     """
     fs = 18
-    pop_names = [string.replace('23', '2/3') for string in populations]
+    pop_names = [string.replace("23", "2/3") for string in populations]
     label_pos = list(range(len(populations), 0, -1))
-    color_list = ['#af143c', '#595289']
-    medianprops = dict(linestyle='-', linewidth=2.5, color='black')
-    meanprops = dict(linestyle='--', linewidth=2.5, color='lightgray')
+    color_list = ["#af143c", "#595289"]
+    medianprops = dict(linestyle="-", linewidth=2.5, color="black")
+    meanprops = dict(linestyle="--", linewidth=2.5, color="lightgray")
 
     rates_per_neuron_rev = []
     for i in np.arange(len(populations))[::-1]:
         rates_per_neuron_rev.append(
-            np.loadtxt(os.path.join(path, ('rate' + str(i) + '.dat'))))
+            np.loadtxt(os.path.join(path, ("rate" + str(i) + ".dat")))
+        )
 
     plt.figure(figsize=(8, 6))
-    bp = plt.boxplot(rates_per_neuron_rev, 0, 'rs', 0, medianprops=medianprops,
-                     meanprops=meanprops, meanline=True, showmeans=True)
-    plt.setp(bp['boxes'], color='black')
-    plt.setp(bp['whiskers'], color='black')
-    plt.setp(bp['fliers'], color='red', marker='+')
+    bp = plt.boxplot(
+        rates_per_neuron_rev,
+        0,
+        "rs",
+        0,
+        medianprops=medianprops,
+        meanprops=meanprops,
+        meanline=True,
+        showmeans=True,
+    )
+    plt.setp(bp["boxes"], color="black")
+    plt.setp(bp["whiskers"], color="black")
+    plt.setp(bp["fliers"], color="red", marker="+")
 
     # boxcolors
     for i in np.arange(len(populations)):
         boxX = []
         boxY = []
-        box = bp['boxes'][i]
+        box = bp["boxes"][i]
         for j in list(range(5)):
             boxX.append(box.get_xdata()[j])
             boxY.append(box.get_ydata()[j])
@@ -470,14 +489,17 @@ def boxplot(path, populations):
         k = i % 2
         boxPolygon = Polygon(boxCoords, facecolor=color_list[k])
         plt.gca().add_patch(boxPolygon)
-    plt.xlabel('firing rate [spikes/s]', fontsize=fs)
+    plt.xlabel("firing rate [spikes/s]", fontsize=fs)
     plt.yticks(label_pos, pop_names, fontsize=fs)
     plt.xticks(fontsize=fs)
-    plt.savefig(os.path.join(path, 'box_plot.png'), dpi=300)
+    if title:
+        plt.suptitle(title)
+    plt.savefig(os.path.join(path, "box_plot.png"), dpi=300)
+    plt.close()
 
 
 def __gather_metadata(path, name):
-    """ Reads names and ids of spike recorders and first and last ids of
+    """Reads names and ids of spike recorders and first and last ids of
     neurons in each population.
 
     If the simulation was run on several threads or MPI-processes, one name per
@@ -507,21 +529,21 @@ def __gather_metadata(path, name):
         if fn.startswith(name):
             sd_files.append(fn)
             # spike recorder name and its ID
-            fnsplit = '-'.join(fn.split('-')[:-1])
+            fnsplit = "-".join(fn.split("-")[:-1])
             if fnsplit not in sd_names:
                 sd_names.append(fnsplit)
 
     # load node IDs
-    node_idfile = open(os.path.join(path, 'population_nodeids.dat'), 'r')
+    node_idfile = open(os.path.join(path, "population_nodeids.dat"), "r")
     node_ids = []
     for node_id in node_idfile:
         node_ids.append(node_id.split())
-    node_ids = np.array(node_ids, dtype='i4')
+    node_ids = np.array(node_ids, dtype="i4")
     return sd_files, sd_names, node_ids
 
 
 def __load_spike_times(path, name, begin, end):
-    """ Loads spike times of each spike recorder.
+    """Loads spike times of each spike recorder.
 
     Parameters
     ----------
@@ -543,8 +565,7 @@ def __load_spike_times(path, name, begin, end):
     """
     sd_files, sd_names, node_ids = __gather_metadata(path, name)
     data = {}
-    dtype = {'names': ('sender', 'time_ms'),  # as in header
-             'formats': ('i4', 'f8')}
+    dtype = {"names": ("sender", "time_ms"), "formats": ("i4", "f8")}  # as in header
     for i, name in enumerate(sd_names):
         data_i_raw = np.array([[]], dtype=dtype)
         for j, f in enumerate(sd_files):
@@ -553,11 +574,12 @@ def __load_spike_times(path, name, begin, end):
                 ld = np.loadtxt(os.path.join(path, f), skiprows=3, dtype=dtype)
                 data_i_raw = np.append(data_i_raw, ld)
 
-        data_i_raw = np.sort(data_i_raw, order='time_ms')
+        data_i_raw = np.sort(data_i_raw, order="time_ms")
         # begin and end are included if they exist
-        low = np.searchsorted(data_i_raw['time_ms'], v=begin, side='left')
-        high = np.searchsorted(data_i_raw['time_ms'], v=end, side='right')
+        low = np.searchsorted(data_i_raw["time_ms"], v=begin, side="left")
+        high = np.searchsorted(data_i_raw["time_ms"], v=end, side="right")
         data[i] = data_i_raw[low:high]
     return sd_names, node_ids, data
+
 
 load_spike_times = __load_spike_times
