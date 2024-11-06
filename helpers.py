@@ -39,8 +39,6 @@ from scipy.stats import multivariate_normal
 from sklearn.decomposition import PCA
 from sklearn.mixture import GaussianMixture
 
-import utils as utils
-
 if "DISPLAY" not in os.environ:
     import matplotlib
 
@@ -801,6 +799,74 @@ def plot_trajectories(
 
     return ax
 
+def plot_gaussian_ellipsoid(
+    mean, cov, ax=None, n_std=2, color="k", alpha=0.3, wireframe=True
+):
+    """
+    Plots an ellipsoid representing the Gaussian defined by mean and covariance matrix.
+
+    Parameters:
+    - mean: Center of the ellipsoid (mean of Gaussian).
+    - cov: Covariance matrix of the Gaussian.
+    - ax: Existing 3D axis to plot on. Creates new one if None.
+    - n_std: Number of standard deviations to scale the ellipsoid radii. (2 stds includes 95% of points)
+    - color: Color of the ellipsoid.
+    - alpha: Transparency of the ellipsoid.
+    - wireframe: Plot wireframe
+    """
+    # Create a 3D grid of points on a unit sphere
+    u = np.linspace(0, 2 * np.pi, 100)
+    v = np.linspace(0, np.pi, 50)
+    x = np.outer(np.cos(u), np.sin(v))
+    y = np.outer(np.sin(u), np.sin(v))
+    z = np.outer(np.ones_like(u), np.cos(v))
+
+    # Scale and rotate the points using the covariance matrix
+    sphere_points = np.stack((x.flatten(), y.flatten(), z.flatten()), axis=1)
+
+    # Decompose the covariance matrix to obtain radii and rotation
+    radii, rotation = np.linalg.eigh(cov)
+    # Scale the standard deviation by n_std (e.g., 2 for 95% CI)
+    radii = n_std * np.sqrt(radii)
+    ellipsoid_points = sphere_points @ np.diag(radii) @ rotation.T
+
+    # Translate the points to the mean
+    ellipsoid_points += mean
+
+    # Reshape the points for plotting
+    x_ellipsoid = ellipsoid_points[:, 0].reshape(x.shape)
+    y_ellipsoid = ellipsoid_points[:, 1].reshape(y.shape)
+    z_ellipsoid = ellipsoid_points[:, 2].reshape(z.shape)
+
+    if ax is None:
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection="3d")
+
+    # Plot the ellipsoid surface
+    if wireframe:
+        ax.plot_wireframe(
+            x_ellipsoid,
+            y_ellipsoid,
+            z_ellipsoid,
+            color=color,
+            alpha=alpha,
+            rcount=20,
+            ccount=20,
+            linewidth=1,
+        )
+    else:
+        ax.plot_surface(
+            x_ellipsoid,
+            y_ellipsoid,
+            z_ellipsoid,
+            color=color,
+            alpha=alpha,
+            rstride=4,
+            cstride=4,
+            linewidth=0,
+        )
+
+    return ax
 
 def plot_and_save_projections(
     baseline,
@@ -846,7 +912,7 @@ def plot_and_save_projections(
             stim_cov = stim_gmm.covariances_[0]
 
             # Plot ellipsoids
-            utils.plot_gaussian_ellipsoid(
+            plot_gaussian_ellipsoid(
                 stim_mean,
                 stim_cov,
                 ax=ax,
@@ -855,7 +921,7 @@ def plot_and_save_projections(
                 alpha=0.2,
                 wireframe=True,
             )
-            utils.plot_gaussian_ellipsoid(
+            plot_gaussian_ellipsoid(
                 baseline_mean,
                 baseline_cov,
                 ax=ax,
