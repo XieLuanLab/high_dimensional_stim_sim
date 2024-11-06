@@ -235,79 +235,9 @@ plt.axhline(
     baseline_num_components, color="r", linestyle="--", label="Baseline Dimensionality"
 )  # Add baseline reference line
 
-# Set x-axis tick labels
 plt.xticks(stim_channels, labels=stim_channels)
 
-# Add labels and title
 plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Dimensionality")
 plt.title("Stimulus-Evoked vs Baseline Dimensionality")
 plt.legend()
-
-# %%
-# i = 500
-# neuron_old = currents_at_neurons[i].get()
-# amp_times_old = neuron_old['amplitude_times']
-# amp_old = neuron_old['amplitude_values']
-
-# neuron_new = current_generators[i].get()
-# amp_times_new = neuron_new['amplitude_times']
-# amp_new = neuron_new['amplitude_values']
-
-# %% Original code as comparison
-# Random stimulation
-
-
-# stim_spike_rates_list = []
-# sim_resolution = sim_dict['sim_resolution']
-
-# for n_groups in N_GROUPS_LIST[2:3]:
-#     print(f'n_groups: {n_groups}')
-#     nest.ResetKernel()
-
-#     electrodes = RandomStimElectrodes(
-#         ch_coordinates, stim_pulse_params, amp_decay_func, sim_resolution)
-
-#     sim_dict["data_path"] = os.path.join(
-#         os.getcwd(), f"data20241011/data_randstim_{n_groups}groups_biphasic/"
-#     )
-#     if os.path.exists(sim_dict["data_path"]):
-#         shutil.rmtree(sim_dict["data_path"])
-
-#     network = Network(sim_dict, net_dict, stim_dict)
-#     network.create()
-#     network.connect()
-
-#     old_stimulations = electrodes.generate_random_stimulation(
-#         STIM_CHANNELS,
-#         STIM_AMPLITUDES,
-#         SIM_TIME_MS,
-#         stim_rate_hz=STIM_POISSON_RATE_HZ,
-#         n_groups=n_groups,
-#     )
-#     currents_at_neurons = electrodes.get_current_at_locs(
-#         network.neuron_locations)
-#     network.simulate_current_input(currents_at_neurons, SIM_TIME_MS)
-
-#     RASTER_INTERVAL = [0, 1000]
-#     FIRING_RATE_INTERVAL = [0, 1000]
-#     network.evaluate(RASTER_INTERVAL, FIRING_RATE_INTERVAL)
-
-#     fig, axes = plt.subplots(2, 1, figsize=(10, 8))
-#     utils.plot_raster(network, time_range_ms=RASTER_INTERVAL, ax=axes[0])
-#     electrodes.plot_stim_raster(ax=axes[1], time_range_ms=RASTER_INTERVAL)
-#     plt.tight_layout()
-#     plt.show()
-
-# neuron0 = currents_at_neurons[1].get()
-# amp_times = neuron0['amplitude_times']
-# amp = neuron0['amplitude_values']
-
-# Y_old = []
-# for i in range(np.sum(network.num_neurons)):
-#     neuron_old = currents_at_neurons[i].get()
-#     amp_times_old = neuron_old['amplitude_times']
-#     amp_old = neuron_old['amplitude_values']
-#     Y_old.append(amp_old)
-
-# Y_old = np.array(Y_old)

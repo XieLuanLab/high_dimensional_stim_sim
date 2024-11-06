@@ -158,29 +158,11 @@ class Network:
         i_neuron = 0
         print("Connect current input...")
         for pop in self.pops:
-            # n_neurons_in_pop = len(pop)
-            # print(len(pop), len(
-            #     input_currents[i_neuron:i_neuron+n_neurons_in_pop]))
-            # nest.Connect(np.array(input_currents[i_neuron:i_neuron+n_neurons_in_pop]), pop, conn_spec="one_to_one")
-            # i_neuron += n_neurons_in_pop
             for neuron in pop:
                 nest.Connect(input_currents[i_neuron], neuron)
                 i_neuron += 1
         print("Connected current input")
-        # add scope
-        # self.record_to = "memory"
-        # sd_dict = {
-        #     'record_to': self.record_to,
-        #     'label': "spk_rec"
-        # }
-        # self.spike_recorders = nest.Create(
-        #     "spike_recorder", n=self.n_neurons,
-        #     params=sd_dict
-        # )
-        # # self.voltage_recorders = nest.Create("multimeter", n=self.n_neurons, params={"record_from": ["V_m"]})
-        # nest.Connect(self.neurons, self.spike_recorders, conn_spec="one_to_one")
-        # # nest.Connect(self.voltage_recorders, self.neurons, conn_spec="one_to_one")
-        # # simulateion
+
         self.simulation_time_ms = time_ms
         nest.Simulate(time_ms)
 
