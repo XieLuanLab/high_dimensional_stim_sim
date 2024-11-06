@@ -7,3 +7,5 @@ tmp**
 **.dat
 data**
 .spyproject/
+**.pkl
+

@@ -56,6 +56,9 @@ def get_exc_inh_matrix(val_exc, val_inh, num_pops):
 
 net_dict = {
     # factor to scale the number of neurons
+    # "N_scaling": 0.02,
+    # # factor to scale the indegrees
+    # "K_scaling": 0.02,
     "N_scaling": 0.1,
     # factor to scale the indegrees
     "K_scaling": 0.1,

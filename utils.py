@@ -94,7 +94,7 @@ def compute_smoothed_firing_rate(trial_data, bin_size=10, sigma=30):
 
 
 def plot_raster(nn, time_range_ms=None, ax=None):
-    spike_trains = nn.get_spiketrains()
+    spike_trains = nn.get_spike_train_list()
     neuron_inds_sorted = np.argsort(nn.neuron_locations[:, 1])
 
     if ax is None:
@@ -103,6 +103,8 @@ def plot_raster(nn, time_range_ms=None, ax=None):
     for i in range(nn.n_neurons):
         idx = neuron_inds_sorted[i]
         spike_train = spike_trains[idx]
+        if len(spike_train) == 0:
+            continue
 
         # If a time_range is provided, only plot spikes within that range
         if time_range_ms is not None:
@@ -111,7 +113,7 @@ def plot_raster(nn, time_range_ms=None, ax=None):
             ]
 
         # Use ax.eventplot instead of plt.eventplot
-        ax.eventplot(spike_train, lineoffsets=i, colors="k")
+        ax.eventplot(spike_train, lineoffsets=i, colors="k", linewidth=2)
 
     # Set axis limits and labels
     if time_range_ms is not None:
@@ -127,7 +129,7 @@ def plot_raster(nn, time_range_ms=None, ax=None):
 
 
 def plot_firing_rates(nn, time_range_ms=None, plot_top_n=5, ax=None):
-    spike_trains = nn.get_spiketrains()
+    spike_trains = nn.get_spike_train_list()
 
     if ax is None:
         fig, ax = plt.subplots(figsize=(5, 3))

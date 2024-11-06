@@ -32,11 +32,12 @@ sim_dict = {
     # The full simulation time is the sum of a presimulation time and the main
     # simulation time.
     # presimulation time (in ms)
-    "t_presim": 10000.0,
+    # 1s should be enough
+    "t_presim": 1000,
     # simulation time (in ms)
-    "t_sim": 10000.0,
+    "t_sim": 120000.0,
     # resolution of the simulation (in ms)
-    "sim_resolution": 0.1,
+    "sim_resolution": 0.1,  # 0.1
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can
     # be added to record membrane voltages of the neurons. Nothing will be
     # recorded if an empty list is given.

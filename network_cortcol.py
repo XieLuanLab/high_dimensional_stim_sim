@@ -159,7 +159,8 @@ class Network:
         print("Connect current input...")
         for pop in self.pops:
             # n_neurons_in_pop = len(pop)
-            # print(len(pop), len(input_currents[i_neuron:i_neuron+n_neurons_in_pop]))
+            # print(len(pop), len(
+            #     input_currents[i_neuron:i_neuron+n_neurons_in_pop]))
             # nest.Connect(np.array(input_currents[i_neuron:i_neuron+n_neurons_in_pop]), pop, conn_spec="one_to_one")
             # i_neuron += n_neurons_in_pop
             for neuron in pop:
@@ -214,7 +215,9 @@ class Network:
                 spk_trains[neuron_key - 1] = np.array(times)
         return spk_trains
 
-    def evaluate(self, raster_plot_interval, firing_rates_interval, title=None):
+    def evaluate(
+        self, raster_plot_interval, firing_rates_interval, title=None, raster_ax=None
+    ):
         """Displays simulation results.
 
         Creates a spike raster plot.
@@ -237,14 +240,17 @@ class Network:
         """
         if nest.Rank() == 0:
             print("Interval to plot spikes: {} ms".format(raster_plot_interval))
+
             helpers.plot_raster(
                 self.data_path,
                 "spike_recorder",
                 raster_plot_interval[0],
                 raster_plot_interval[1],
                 self.net_dict["N_scaling"],
-                title,
+                title=title,
+                ax=raster_ax,
             )
+
             helpers.plot_psth(
                 self.data_path,
                 "spike_recorder",

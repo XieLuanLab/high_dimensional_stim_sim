@@ -101,7 +101,7 @@ def compute_spike_rates(
     return spike_rates
 
 
-def get_dimensionality(spike_rates, plot_scree=True):
+def get_dimensionality(spike_rates, pca=None, plot_scree=False):
     """
     Compute the number of principal components required to explain 95% of the variance in spike rates.
 
@@ -109,6 +109,8 @@ def get_dimensionality(spike_rates, plot_scree=True):
     ----------
     spike_rates : np.ndarray
         2D array where rows represent different time windows and columns represent neurons.
+    pca : PCA object, optional
+        A pre-fitted PCA object. If None, a new PCA fit will be computed.
     plot_scree : bool, optional
         If True, plot a scree plot showing cumulative explained variance. Default is True.
 
@@ -118,8 +120,11 @@ def get_dimensionality(spike_rates, plot_scree=True):
         Number of PCA components explaining 95% of the variance.
 
     """
-    pca = PCA()
-    pca.fit(spike_rates)
+
+    if pca is None:
+        pca = PCA()
+        pca.fit(spike_rates)
+
     explained_variance = np.cumsum(pca.explained_variance_ratio_)
     num_components = np.argmax(explained_variance >= 0.95) + 1
     print(f"Number of components explaining 95% variance: {num_components}")
@@ -149,43 +154,6 @@ def get_dimensionality(spike_rates, plot_scree=True):
         plt.show()
 
     return num_components
-
-
-# TODO: don't know if functions necessary
-
-
-def fit_and_transform_baseline_pca(baseline_spike_rates):
-    """
-    Fit PCA on baseline spike rates and transform the data.
-
-    Parameters:
-        baseline_spike_rates (ndarray): Baseline spike rates (time steps x neurons).
-
-    Returns:
-        baseline_pca (ndarray): Transformed baseline data in PCA space.
-        pca (PCA): The fitted PCA object.
-    """
-    pca = PCA(n_components=3)
-    baseline_pca = pca.fit_transform(baseline_spike_rates)
-
-    return baseline_pca, pca
-
-
-def project_stim_to_pca(stim_spike_rates, pca):
-    """
-    Project stimulus spike rates onto the PCA components derived from baseline.
-
-    Parameters:
-        stim_spike_rates (ndarray): Stimulus spike rates (time steps x neurons).
-        pca (PCA): The fitted PCA object from the baseline spike rates.
-
-    Returns:
-        stim_projected (ndarray): Stimulus data projected onto baseline PCA components.
-    """
-    # Project the stim data onto the baseline PCA components
-    stim_projected = pca.transform(stim_spike_rates)
-
-    return stim_projected
 
 
 def plot_trajectories(
