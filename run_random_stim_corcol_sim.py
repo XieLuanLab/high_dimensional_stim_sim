@@ -7,7 +7,6 @@ import nest
 import numpy as np
 from sklearn.decomposition import PCA
 
-import dimensionality as dim
 import helpers
 from corcol_params.network_params import net_dict
 from corcol_params.sim_params import sim_dict
@@ -79,7 +78,7 @@ if not os.path.exists(pkl_path):
     network.simulate_baseline(SIM_TIME_MS)
 
     baseline_spike_trains = network.get_spike_train_list()
-    baseline_spike_rates = dim.compute_spike_rates(
+    baseline_spike_rates = helpers.compute_spike_rates(
         baseline_spike_trains,
         SIM_TIME_MS,
         WINDOW_MS,
@@ -151,7 +150,7 @@ for n_groups in N_GROUPS_LIST:
 
         # Get evoked spike rates and append to list
         stim_evoked_spike_trains = network.get_spike_train_list()
-        stim_evoked_spike_rates = dim.compute_spike_rates(
+        stim_evoked_spike_rates = helpers.compute_spike_rates(
             stim_evoked_spike_trains,
             SIM_TIME_MS,
             WINDOW_MS,
