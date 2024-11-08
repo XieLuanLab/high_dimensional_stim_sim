@@ -743,7 +743,7 @@ def get_dimensionality(spike_rates, variance_threshold, plot_scree=False):
 
 
 def plot_trajectories(
-    baseline_pca, stim_projected=None, sigma=2, stim_color=None, ax=None
+    baseline_pca, stim_projected=None, sigma=1, stim_color=None, ax=None
 ):
     """
     Plots the baseline PCA and stimulus projections on the same 3D axis with Gaussian smoothing.
@@ -793,11 +793,12 @@ def plot_trajectories(
         )
 
     ax.set_title("3D Projection with Smoothed Trajectories")
-    ax.set_xlabel("Component 1")
-    ax.set_ylabel("Component 2")
-    ax.set_zlabel("Component 3")
+    ax.set_xlabel("PC1")
+    ax.set_ylabel("PC2")
+    ax.set_zlabel("PC3")
 
     return ax
+
 
 def plot_gaussian_ellipsoid(
     mean, cov, ax=None, n_std=2, color="k", alpha=0.3, wireframe=True
@@ -868,6 +869,7 @@ def plot_gaussian_ellipsoid(
 
     return ax
 
+
 def plot_and_save_projections(
     baseline,
     stim_projected_list,
@@ -937,7 +939,7 @@ def plot_and_save_projections(
 
             # Calculate and store radii difference
             if view_index == 0:
-                overlap, _, _ = compute_volume_overlap(
+                overlap, _, _ = compute_jaccard_overlap(
                     baseline_mean, baseline_cov, stim_mean, stim_cov
                 )
                 overlap_list.append(overlap)
@@ -953,9 +955,9 @@ def plot_and_save_projections(
     return overlap_list
 
 
-def compute_volume_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
+def compute_jaccard_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
     """
-    Compute an estimate of the volume overlap between two Gaussian distributions.
+    Compute an estimate of the volume overlap between two Gaussian distributions using the Jaccard Index.
 
     Parameters
     ----------
@@ -972,13 +974,12 @@ def compute_volume_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
 
     Returns
     -------
-    overlap_fraction : float
-        Estimated fraction of overlapping volume between the two Gaussians.
+    jaccard_index : float
+        Estimated Jaccard Index between the two Gaussians.
     samples_1 : ndarray
         Samples drawn from the first Gaussian distribution.
     samples_2 : ndarray
         Samples drawn from the second Gaussian distribution.
-
     """
     # Generate random samples from both Gaussian distributions
     samples_1 = np.random.multivariate_normal(mean_1, cov_1, n_samples)
@@ -991,17 +992,17 @@ def compute_volume_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
     density_1_samples_2 = multivariate_normal.pdf(samples_2, mean=mean_1, cov=cov_1)
     density_2_samples_2 = multivariate_normal.pdf(samples_2, mean=mean_2, cov=cov_2)
 
-    # Estimate the overlap for both sets of samples
-    overlap_1 = np.mean(
-        np.minimum(density_1_samples_1, density_2_samples_1)
-        / np.maximum(density_1_samples_1, density_2_samples_1)
-    )
-    overlap_2 = np.mean(
-        np.minimum(density_1_samples_2, density_2_samples_2)
-        / np.maximum(density_1_samples_2, density_2_samples_2)
-    )
+    # Estimate the intersection volumes for both sets of samples
+    intersection_1 = np.sum(np.minimum(density_1_samples_1, density_2_samples_1))
+    intersection_2 = np.sum(np.minimum(density_1_samples_2, density_2_samples_2))
+    intersection_volume = (intersection_1 + intersection_2) / 2
 
-    # Average the two overlap estimates
-    overlap_fraction = (overlap_1 + overlap_2) / 2
+    # Estimate the union volumes for both sets of samples
+    union_1 = np.sum(np.maximum(density_1_samples_1, density_2_samples_1))
+    union_2 = np.sum(np.maximum(density_1_samples_2, density_2_samples_2))
+    union_volume = (union_1 + union_2) / 2
 
-    return overlap_fraction, samples_1, samples_2
+    # Calculate the Jaccard Index as Intersection / Union
+    jaccard_index = intersection_volume / union_volume
+
+    return jaccard_index, samples_1, samples_2

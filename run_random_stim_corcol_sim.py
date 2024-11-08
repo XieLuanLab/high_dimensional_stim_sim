@@ -34,7 +34,7 @@ PRESIM_TIME_MS = sim_dict["t_presim"]
 SIM_TIME_MS = sim_dict["t_sim"]
 WINDOW_MS = 500
 OVERLAP_MS = 400
-RASTER_PLOT_TIME_MS = 1000
+RASTER_PLOT_TIME_MS = 500
 N_GROUPS_LIST = [1, 2, 4, 8, 16, 32]  # number of stim electrode groups
 RASTER_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + RASTER_PLOT_TIME_MS]
 FIRING_RATE_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + SIM_TIME_MS]
@@ -60,7 +60,7 @@ stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 
 nest.ResetKernel()
 
-base_path = os.path.join(os.getcwd(), "data_8Hz_k10_scale01")
+base_path = os.path.join(os.getcwd(), "data_8Hz_k15_scale01")
 
 sim_dict["data_path"] = os.path.join(base_path, "data_baseline")
 
@@ -103,8 +103,6 @@ with open(pkl_path, "rb") as f:
     baseline_spike_rates = pickle.load(f)
 # %% Simulate stimulation
 
-# Check if spike rates saved previously and if so, skip processing
-
 stim_spike_rates_list = []
 
 for n_groups in N_GROUPS_LIST:
@@ -112,7 +110,10 @@ for n_groups in N_GROUPS_LIST:
     pkl_path = os.path.join(
         sim_dict["data_path"], f"{n_groups}groups_stim_spike_rates.pkl"
     )
-
+    pkl_path_stim_pulses = os.path.join(
+        sim_dict["data_path"], f"{n_groups}groups_stim_pulses.pkl"
+    )
+    # Check if spike rates saved previously and if so, skip processing
     if not os.path.exists(pkl_path):
         print(f"\n\n***** n_groups: {n_groups} *****\n\n")
         nest.ResetKernel()
@@ -164,6 +165,7 @@ for n_groups in N_GROUPS_LIST:
         network.evaluate(
             RASTER_INTERVAL, FIRING_RATE_INTERVAL, title=plot_title, raster_ax=axes[0]
         )
+
         electrodes.plot_stim_raster(ax=axes[1], time_range_ms=RASTER_INTERVAL)
         plt.tight_layout()
         plt.savefig(
@@ -173,6 +175,9 @@ for n_groups in N_GROUPS_LIST:
 
         with open(pkl_path, "wb") as f:
             pickle.dump(stim_evoked_spike_rates, f)
+
+        with open(pkl_path_stim_pulses, "wb") as f:
+            pickle.dump(electrodes.stim_onset_times_by_ch, f)
 
     with open(pkl_path, "rb") as f:
         stim_evoked_spike_rates = pickle.load(f)
@@ -202,7 +207,9 @@ for i, stim_spike_rates in enumerate(stim_spike_rates_list):
     stim_num_components_list.append(num_components)
 
 # %% # %% Visualization
-views = [(20, -60), (50, 85)]
+# views = [(20, -60), (50, 85)]
+views = [(12, -36), (15, -10)]
+views = [(12, -36)]
 
 # Plot and save PCA projections for each view
 overlap_list = helpers.plot_and_save_projections(
@@ -211,21 +218,22 @@ overlap_list = helpers.plot_and_save_projections(
     sim_dict["data_path"],
     "pca_projection",
     views=views,
-    # xlim=[-10, 10], ylim=[-5, 3], zlim=[-5, 5]
+    xlim=[-0.08, 0.08],
+    ylim=[0.07, -0.2],
+    zlim=[-0.05, 0.04],
 )
 
+plt.suptitle("")
+# %%
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 plt.figure(figsize=(8, 5))
 plt.plot(stim_channels, overlap_list, marker="o")
 plt.xticks(stim_channels, labels=stim_channels)
 # Add labels and title
 plt.xlabel("Number of Stimulated Channels")
-plt.ylabel("Volume overlap")
-plt.title(
-    "Volume overlap between baseline and stimulation-evoked firing rates ellipsoids"
-)
-plt.legend()
-
+plt.ylabel("Jaccard Index")
+plt.title("Volume Overlap")
+plt.legend().set_visible(False)
 
 plt.figure(figsize=(8, 5))
 plt.plot(
