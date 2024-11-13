@@ -59,7 +59,7 @@ def amp_decay_func(amp_uA, dist_um):
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 
 nest.ResetKernel()
-base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[2]uA")
+base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[2.5]uA")
 
 sim_dict["data_path"] = os.path.join(base_path, "data_baseline")
 
@@ -230,7 +230,6 @@ stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 plt.figure(figsize=(8, 5))
 plt.plot(np.arange(6), overlap_list, marker="o")
 plt.xticks(np.arange(6), labels=stim_channels)
-# Add labels and title
 plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Jaccard Index")
 plt.title("Volume Overlap")
