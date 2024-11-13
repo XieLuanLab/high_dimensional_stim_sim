@@ -59,8 +59,7 @@ def amp_decay_func(amp_uA, dist_um):
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 
 nest.ResetKernel()
-
-base_path = os.path.join(os.getcwd(), "data_8Hz_k15_scale01")
+base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[2]uA")
 
 sim_dict["data_path"] = os.path.join(base_path, "data_baseline")
 
@@ -212,7 +211,7 @@ views = [(12, -36), (15, -10)]
 views = [(12, -36)]
 
 # Plot and save PCA projections for each view
-overlap_list = helpers.plot_and_save_projections(
+helpers.plot_projections(
     baseline_pca,
     stim_projected_list,
     sim_dict["data_path"],
@@ -223,12 +222,14 @@ overlap_list = helpers.plot_and_save_projections(
     zlim=[-0.05, 0.04],
 )
 
+overlap_list, _, _ = helpers.compute_all_overlaps(baseline_pca, stim_projected_list)
+
 plt.suptitle("")
 # %%
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 plt.figure(figsize=(8, 5))
-plt.plot(stim_channels, overlap_list, marker="o")
-plt.xticks(stim_channels, labels=stim_channels)
+plt.plot(np.arange(6), overlap_list, marker="o")
+plt.xticks(np.arange(6), labels=stim_channels)
 # Add labels and title
 plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Jaccard Index")
@@ -237,13 +238,13 @@ plt.legend().set_visible(False)
 
 plt.figure(figsize=(8, 5))
 plt.plot(
-    stim_channels, stim_num_components_list, marker="o", label="Evoked Dimensionality"
+    np.arange(6), stim_num_components_list, marker="o", label="Evoked Dimensionality"
 )
 plt.axhline(
     baseline_num_components, color="r", linestyle="--", label="Baseline Dimensionality"
 )  # Add baseline reference line
 
-plt.xticks(stim_channels, labels=stim_channels)
+plt.xticks(np.arange(6), labels=stim_channels)
 
 plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Dimensionality")

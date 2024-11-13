@@ -870,7 +870,67 @@ def plot_gaussian_ellipsoid(
     return ax
 
 
-def plot_and_save_projections(
+def fit_gaussian_model(data):
+    """Fit a Gaussian Mixture Model and return mean and covariance."""
+    gmm = GaussianMixture(n_components=1, covariance_type="full")
+    gmm.fit(data)
+    return gmm.means_[0], gmm.covariances_[0]
+
+
+def compute_all_overlaps(baseline, stim_projected_list):
+    """Calculate overlaps between baseline and stimulus projections."""
+    overlap_list = []
+    baseline_mean, baseline_cov = fit_gaussian_model(baseline)
+
+    for stim_projected in stim_projected_list:
+        stim_mean, stim_cov = fit_gaussian_model(stim_projected)
+        overlap, _, _ = compute_jaccard_overlap(
+            baseline_mean, baseline_cov, stim_mean, stim_cov
+        )
+        overlap_list.append(overlap)
+
+    return overlap_list, baseline_mean, baseline_cov
+
+
+def plot_projection(
+    ax,
+    baseline,
+    stim_projected,
+    baseline_mean,
+    baseline_cov,
+    stim_mean,
+    stim_cov,
+    xlim=None,
+    ylim=None,
+    zlim=None,
+    view=None,
+):
+    """Plot trajectories and ellipsoids on a 3D axis."""
+    plot_trajectories(baseline, stim_projected, stim_color="C0", ax=ax)
+    plot_gaussian_ellipsoid(
+        stim_mean, stim_cov, ax=ax, n_std=2, color="k", alpha=0.2, wireframe=True
+    )
+    plot_gaussian_ellipsoid(
+        baseline_mean,
+        baseline_cov,
+        ax=ax,
+        n_std=2,
+        color="k",
+        alpha=0.2,
+        wireframe=True,
+    )
+
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+    if zlim:
+        ax.set_zlim(zlim)
+    if view:
+        ax.view_init(elev=view[0], azim=view[1])
+
+
+def plot_projections(
     baseline,
     stim_projected_list,
     output_dir,
@@ -881,68 +941,36 @@ def plot_and_save_projections(
     ylim=None,
     zlim=None,
 ):
-    baseline_gmm = GaussianMixture(n_components=1, covariance_type="full")
-    baseline_gmm.fit(baseline)
-    baseline_mean = baseline_gmm.means_[0]
-    baseline_cov = baseline_gmm.covariances_[0]
+    """Plot projections for different views and save the figures without returning any data."""
+    # Calculate overlaps and fit baseline GMM model
+    overlap_list, baseline_mean, baseline_cov = compute_all_overlaps(
+        baseline, stim_projected_list
+    )
 
-    overlap_list = []
-
-    # Loop over the views to generate a separate figure for each view
     for view_index, view in enumerate(views):
         fig = plt.figure(figsize=(12, 8))
         gs = GridSpec(2, 3, figure=fig, hspace=0.3, wspace=0.2)
 
         for i, stim_projected in enumerate(stim_projected_list):
             ax = fig.add_subplot(gs[i], projection="3d")
+            stim_mean, stim_cov = fit_gaussian_model(stim_projected)
 
-            # Set axis limits
-            if xlim:
-                ax.set_xlim(xlim)
-            if ylim:
-                ax.set_ylim(ylim)
-            if zlim:
-                ax.set_zlim(zlim)
-
-            # Plot trajectories
-            plot_trajectories(baseline, stim_projected, stim_color="C0", ax=ax)
-
-            # Fit Gaussian Mixture Model for stimulus data
-            stim_gmm = GaussianMixture(n_components=1, covariance_type="full")
-            stim_gmm.fit(stim_projected)
-            stim_mean = stim_gmm.means_[0]
-            stim_cov = stim_gmm.covariances_[0]
-
-            # Plot ellipsoids
-            plot_gaussian_ellipsoid(
-                stim_mean,
-                stim_cov,
-                ax=ax,
-                n_std=2,
-                color="k",
-                alpha=0.2,
-                wireframe=True,
-            )
-            plot_gaussian_ellipsoid(
+            # Plot trajectories and ellipsoids
+            plot_projection(
+                ax,
+                baseline,
+                stim_projected,
                 baseline_mean,
                 baseline_cov,
-                ax=ax,
-                n_std=2,
-                color="k",
-                alpha=0.2,
-                wireframe=True,
+                stim_mean,
+                stim_cov,
+                xlim,
+                ylim,
+                zlim,
+                view,
             )
 
-            # Set view and title
-            ax.view_init(elev=view[0], azim=view[1])
             ax.set_title(f"{N_GROUPS_LIST[i]} stim channels", fontsize=12)
-
-            # Calculate and store radii difference
-            if view_index == 0:
-                overlap, _, _ = compute_jaccard_overlap(
-                    baseline_mean, baseline_cov, stim_mean, stim_cov
-                )
-                overlap_list.append(overlap)
 
         plt.tight_layout()
         plt.suptitle(f"PCA Projection (View {view_index + 1})", fontsize=16)
@@ -951,8 +979,6 @@ def plot_and_save_projections(
         file_path = os.path.join(output_dir, f"{file_name}_view_{view_index + 1}.png")
         plt.savefig(file_path)
         plt.show()
-
-    return overlap_list
 
 
 def compute_jaccard_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
