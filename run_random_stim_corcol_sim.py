@@ -11,7 +11,7 @@ import helpers
 from corcol_params.network_params import net_dict
 from corcol_params.sim_params import sim_dict
 from corcol_params.stimulus_params import stim_dict
-from electrodes_random_stim import RandomStimElectrodes
+from electrodes_stim import StimElectrodes
 from network_cortcol import Network
 
 # matplotlib.use("Agg")
@@ -29,6 +29,7 @@ conductivity_constant = 10
 STIM_CHANNELS = np.arange(32)
 STIM_AMPLITUDES = [2]  # uA
 STIM_POISSON_RATE_HZ = 8
+RANDOM_STIM = True  # else, deterministic
 
 PRESIM_TIME_MS = sim_dict["t_presim"]
 SIM_TIME_MS = sim_dict["t_sim"]
@@ -59,7 +60,7 @@ def amp_decay_func(amp_uA, dist_um):
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 
 nest.ResetKernel()
-base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[2.5]uA")
+base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[0.5]uA")
 
 sim_dict["data_path"] = os.path.join(base_path, "data_baseline")
 
@@ -117,9 +118,7 @@ for n_groups in N_GROUPS_LIST:
         print(f"\n\n***** n_groups: {n_groups} *****\n\n")
         nest.ResetKernel()
 
-        electrodes = RandomStimElectrodes(
-            ch_coordinates, stim_pulse_params, amp_decay_func
-        )
+        electrodes = StimElectrodes(ch_coordinates, stim_pulse_params, amp_decay_func)
 
         network = Network(sim_dict, net_dict, stim_dict)
         network.create()
@@ -184,7 +183,7 @@ for n_groups in N_GROUPS_LIST:
 
 
 # %% Dimensionality reduction
-variance_threshold = 0.85
+variance_threshold = 0.95
 pca = PCA(n_components=3)
 # Fit PCA on baseline spike rates and transform the data
 pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
@@ -202,13 +201,12 @@ for i, stim_spike_rates in enumerate(stim_spike_rates_list):
     stim_projected_list.append(stim_projected)
 
     num_components = helpers.get_dimensionality(stim_spike_rates, variance_threshold)
-
     stim_num_components_list.append(num_components)
 
 # %% # %% Visualization
 # views = [(20, -60), (50, 85)]
 views = [(12, -36), (15, -10)]
-views = [(12, -36)]
+views = [(10, -100)]
 
 # Plot and save PCA projections for each view
 helpers.plot_projections(

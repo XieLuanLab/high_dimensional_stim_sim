@@ -8,7 +8,7 @@ import numpy as np
 UA2PA = 1e6
 
 
-class RandomStimElectrodes:
+class StimElectrodes:
     def __init__(
         self,
         ch_coordinates: np.ndarray,
@@ -113,6 +113,61 @@ class RandomStimElectrodes:
                 self.stim_amplitudes_by_ch[ch] = amplitudes
 
         return self.stimulations
+
+    def generate_deterministic_stimulation(
+        self,
+        channels,
+        times,
+        amplitude_range,
+        duration_ms,
+        interpattern_time_ms,
+        pulse_width_ms=0.2,
+    ):
+        """
+        Generate deterministic stimulation across specified channels with given times, amplitudes,
+        and repeating patterns until the specified duration.
+
+        Parameters:
+        - channels: List or array of channel indices.
+        - times: List or array of stimulation times (relative) in milliseconds for one pattern.
+        - amplitudes: List or array of stimulation amplitudes corresponding to each time.
+        - duration_ms: Total duration of the stimulation in milliseconds.
+        - interpattern_time_ms: Time gap between repetitions of the pattern.
+        - pulse_width_ms: Width of the biphasic pulse (default is 0.2 ms).
+        """
+        # Loop through each specified channel
+        for ch in np.unique(channels):
+            # Filter the times and amplitudes specific to the current channel
+            ch_times = np.array(times)[np.array(channels) == ch]
+            ch_amplitudes = np.random.choice(amplitude_range, size=len(ch_times))
+
+            biphasic_pulses = {"times": [], "amplitudes": []}
+
+            # Repeat the pattern for the given duration
+            current_time = 0
+            while current_time < duration_ms:
+                # Generate stimulation pulses for the current repetition
+                for stim_time, amplitude in zip(ch_times, ch_amplitudes):
+                    pulse_start_time = current_time + stim_time
+                    if pulse_start_time >= duration_ms:
+                        break
+
+                    # Generate biphasic pulse
+                    pulse_times, pulse_amps = self.generate_biphasic_pulse(
+                        pulse_start_time, amplitude
+                    )
+
+                    # Append the biphasic pulse times and amplitudes
+                    biphasic_pulses["times"].extend(pulse_times)
+                    biphasic_pulses["amplitudes"].extend(pulse_amps)
+
+                # Move to the next pattern interval
+                current_time += max(ch_times) + interpattern_time_ms
+
+            # Store each channel's stimulation details
+            self.stimulations[ch] = biphasic_pulses
+            self.stim_onset_times_by_ch[ch] = np.array(biphasic_pulses["times"])
+            self.stim_amplitudes_by_ch[ch] = np.array(biphasic_pulses["amplitudes"])
 
     def compute_impulse_response_matrix(self, neuron_locations):
         """
@@ -223,11 +278,6 @@ class RandomStimElectrodes:
         induced_currents = self.induced_current_matrix.astype(
             "float32"
         )  # Convert currents to float32
-
-        print(f"Size of timestamps array (in MB): {timestamps.nbytes / (1024**2):.2f}")
-        print(
-            f"Size of induced currents array (in MB): {induced_currents.nbytes / (1024**2):.2f}"
-        )
 
         if np.any(np.diff(self.unique_timestamps) <= 0.00001):
             raise ValueError("Non-increasing amplitude times detected!")
