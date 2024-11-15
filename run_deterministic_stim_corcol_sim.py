@@ -23,8 +23,6 @@ sigma_e_um = 2.76e-7
 conductivity_constant = 10
 STIM_AMPLITUDES = [2]  # uA
 
-INTERPULSE_INTERVAL_MS = 10
-INTERPATTERN_INTERVAL_MS = 1000
 PRESIM_TIME_MS = sim_dict["t_presim"]
 SIM_TIME_MS = sim_dict["t_sim"]
 WINDOW_MS = 500
@@ -79,12 +77,14 @@ def run_baseline_simulation(network, base_path):
 
 def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_path):
     """Run stimulation with deterministic pattern and save results."""
+    network.simulate_baseline(PRESIM_TIME_MS)
+
     electrodes.generate_deterministic_stimulation(
         pattern["channels"],
         pattern["times"],
         STIM_AMPLITUDES,
         SIM_TIME_MS,
-        INTERPATTERN_INTERVAL_MS,
+        interpattern_time_ms=400,
     )
 
     electrodes.compute_impulse_response_matrix(network.neuron_locations)
@@ -94,6 +94,7 @@ def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_pa
     current_generators = electrodes.get_current_generators(
         presim_time_ms=PRESIM_TIME_MS
     )
+
     network.simulate_current_input(current_generators, time_ms=SIM_TIME_MS)
 
     stim_evoked_spike_trains = network.get_spike_train_list()
@@ -108,6 +109,9 @@ def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_pa
     # Save stimulation results
     with open(os.path.join(stim_path, f"{pattern_id}_spike_rates.pkl"), "wb") as f:
         pickle.dump(stim_evoked_spike_rates, f)
+    # Save stim pulses
+    with open(os.path.join(stim_path, f"{pattern_id}_stim_pulses.pkl"), "wb") as f:
+        pickle.dump(electrodes.stim_onset_times_by_ch, f)
 
     # Plot stimulation raster
     fig, axes = plt.subplots(2, 1, figsize=(8, 6))
@@ -126,10 +130,17 @@ def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_pa
 
 
 # Define stimulation patterns
+interpulse_time_ms = 10
+
 A_ch = np.arange(32)
-A_times = np.arange(1, (32 * INTERPULSE_INTERVAL_MS) + 1, INTERPULSE_INTERVAL_MS)
+A_times = np.array(
+    [1 + PRESIM_TIME_MS + i * interpulse_time_ms for i in range(len(A_ch))]
+)
+
 B_ch = np.arange(32)[::-1]
-B_times = np.arange(1, (32 * INTERPULSE_INTERVAL_MS) + 1, INTERPULSE_INTERVAL_MS)
+B_times = np.array(
+    [1 + PRESIM_TIME_MS + i * interpulse_time_ms for i in range(len(B_ch))]
+)
 
 pattern_dict = {
     "A": {"channels": A_ch, "times": A_times},
@@ -137,33 +148,78 @@ pattern_dict = {
 }
 
 # Main loop to run simulations
+pattern_results = {}
 for pattern_id, pattern in pattern_dict.items():
     base_path = os.path.join(os.getcwd(), "outputs", f"deterministic_{pattern_id}")
 
-    # Create the base directory
-    if os.path.exists(base_path):
-        shutil.rmtree(base_path)
-    os.makedirs(base_path)
-
     baseline_path = os.path.join(base_path, "baseline")
-    os.makedirs(baseline_path, exist_ok=True)
 
-    # Run baseline simulation
-    nest.ResetKernel()
-    network = Network(sim_dict, net_dict, stim_dict)
-    network.create()
-    network.connect()
-    baseline_rates = run_baseline_simulation(network, baseline_path)
-
-    # Run stimulation simulation
     stim_path = os.path.join(base_path, "stimulation")
-    os.makedirs(stim_path, exist_ok=True)
+    spike_rates_pkl_path = os.path.join(stim_path, f"{pattern_id}_spike_rates.pkl")
+    stim_pulses_pkl_path = os.path.join(stim_path, f"{pattern_id}_stim_pulses.pkl")
 
-    nest.ResetKernel()
-    network = Network(sim_dict, net_dict, stim_dict)
-    network.create()
-    network.connect()
-    electrodes = StimElectrodes(ch_coordinates, stim_pulse_params, amp_decay_func)
-    stim_rates = run_stimulation_simulation(
-        network, electrodes, pattern_id, pattern, stim_path
-    )
+    pattern_results[pattern_id] = {}
+
+    if not os.path.exists(spike_rates_pkl_path):
+        # Run baseline simulation
+        nest.ResetKernel()
+        sim_dict["data_path"] = os.path.join(base_path, "baseline")
+        network = Network(sim_dict, net_dict, stim_dict)
+        network.create()
+        network.connect()
+        baseline_rates = run_baseline_simulation(network, baseline_path)
+
+        # Run stimulation simulation
+        nest.ResetKernel()
+        sim_dict["data_path"] = os.path.join(base_path, "stimulation")
+        network = Network(sim_dict, net_dict, stim_dict)
+        network.create()
+        network.connect()
+        electrodes = StimElectrodes(ch_coordinates, stim_pulse_params, amp_decay_func)
+        stim_rates = run_stimulation_simulation(
+            network, electrodes, pattern_id, pattern, stim_path
+        )
+
+    with open(spike_rates_pkl_path, "rb") as f:
+        stim_evoked_spike_rates = pickle.load(f)
+
+    with open(stim_pulses_pkl_path, "rb") as f:
+        stim_pulses = pickle.load(f)
+
+    pattern_results[pattern_id]["spike_rates"] = stim_evoked_spike_rates
+    pattern_results[pattern_id]["stim_pulses"] = stim_pulses
+
+# %% Dimensionality reduction
+# variance_threshold = 0.95
+# pca = PCA(n_components=3)
+# # Fit PCA on baseline spike rates and transform the data
+# pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
+# baseline_pca = pca.transform(baseline_spike_rates)  # Transform baseline data
+# baseline_num_components = helpers.get_dimensionality(
+#     baseline_spike_rates, variance_threshold
+# )
+
+# stim_projected_list = []
+# stim_num_components_list = []
+
+# for i, stim_spike_rates in enumerate(stim_spike_rates_list):
+#     # Project stimulus spike rates onto the PCA components derived from baseline
+#     stim_projected = pca.transform(stim_spike_rates)
+#     stim_projected_list.append(stim_projected)
+
+#     num_components = helpers.get_dimensionality(
+#         stim_spike_rates, variance_threshold)
+#     stim_num_components_list.append(num_components)
+
+# %%
+
+# helpers.plot_projections(
+#     baseline_pca,
+#     stim_projected_list,
+#     sim_dict["data_path"],
+#     "pca_projection",
+#     views=views,
+#     xlim=[-0.08, 0.08],
+#     ylim=[0.07, -0.2],
+#     zlim=[-0.05, 0.04],
+# )

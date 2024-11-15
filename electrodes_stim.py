@@ -99,11 +99,6 @@ class StimElectrodes:
                 for stim_time, amplitude in zip(stim_times_rounded, amplitudes):
                     times, amps = self.generate_biphasic_pulse(stim_time, amplitude)
 
-                    # monophasic
-                    # biphasic_pulses['times'].append(times)
-                    # biphasic_pulses['amplitudes'].append(amps)
-
-                    # biphasic
                     biphasic_pulses["times"].extend(times)
                     biphasic_pulses["amplitudes"].extend(amps)
 
@@ -124,50 +119,55 @@ class StimElectrodes:
         pulse_width_ms=0.2,
     ):
         """
-        Generate deterministic stimulation across specified channels with given times, amplitudes,
-        and repeating patterns until the specified duration.
+        Generate deterministic stimulation with a user-defined pattern and repeat it.
 
         Parameters:
-        - channels: List or array of channel indices.
-        - times: List or array of stimulation times (relative) in milliseconds for one pattern.
-        - amplitudes: List or array of stimulation amplitudes corresponding to each time.
+        - channels: List of channel indices for one pattern.
+        - times: List of stimulation times in milliseconds for one pattern.
+        - amplitude_range: List of possible stimulation amplitudes.
         - duration_ms: Total duration of the stimulation in milliseconds.
-        - interpattern_time_ms: Time gap between repetitions of the pattern.
+        - interpattern_time_ms: Time interval between repetitions of the pattern.
         - pulse_width_ms: Width of the biphasic pulse (default is 0.2 ms).
         """
-        # Loop through each specified channel
-        for ch in np.unique(channels):
-            # Filter the times and amplitudes specific to the current channel
-            ch_times = np.array(times)[np.array(channels) == ch]
-            ch_amplitudes = np.random.choice(amplitude_range, size=len(ch_times))
+        unique_channels = np.unique(channels)
+        biphasic_pulses = {
+            ch: {"times": [], "amplitudes": []} for ch in unique_channels
+        }
+        stim_onset_times_by_ch = {ch: [] for ch in unique_channels}
+        stim_amplitudes_by_ch = {ch: [] for ch in unique_channels}
 
-            biphasic_pulses = {"times": [], "amplitudes": []}
+        current_time = 0
+        while current_time < duration_ms:
+            for ch, stim_time in zip(channels, times):
+                pulse_start_time = current_time + stim_time
+                if pulse_start_time >= duration_ms:
+                    break
 
-            # Repeat the pattern for the given duration
-            current_time = 0
-            while current_time < duration_ms:
-                # Generate stimulation pulses for the current repetition
-                for stim_time, amplitude in zip(ch_times, ch_amplitudes):
-                    pulse_start_time = current_time + stim_time
-                    if pulse_start_time >= duration_ms:
-                        break
+                # Randomly choose an amplitude for this pulse
+                amplitude = np.random.choice(amplitude_range)
 
-                    # Generate biphasic pulse
-                    pulse_times, pulse_amps = self.generate_biphasic_pulse(
-                        pulse_start_time, amplitude
-                    )
+                # Generate biphasic pulse
+                pulse_times, pulse_amps = self.generate_biphasic_pulse(
+                    pulse_start_time, amplitude
+                )
 
-                    # Append the biphasic pulse times and amplitudes
-                    biphasic_pulses["times"].extend(pulse_times)
-                    biphasic_pulses["amplitudes"].extend(pulse_amps)
+                # Append the biphasic pulse times and amplitudes
+                biphasic_pulses[ch]["times"].extend(pulse_times)
+                biphasic_pulses[ch]["amplitudes"].extend(pulse_amps)
 
-                # Move to the next pattern interval
-                current_time += max(ch_times) + interpattern_time_ms
+                # Record onset times and amplitudes for each channel
+                stim_onset_times_by_ch[ch].append(pulse_start_time)
+                stim_amplitudes_by_ch[ch].append(amplitude)
 
-            # Store each channel's stimulation details
-            self.stimulations[ch] = biphasic_pulses
-            self.stim_onset_times_by_ch[ch] = np.array(biphasic_pulses["times"])
-            self.stim_amplitudes_by_ch[ch] = np.array(biphasic_pulses["amplitudes"])
+            # Move to the next pattern interval based on the first pulse time
+            current_time += interpattern_time_ms
+
+        # Store the results
+        self.stimulations = biphasic_pulses
+        self.stim_onset_times_by_ch = stim_onset_times_by_ch
+        self.stim_amplitudes_by_ch = stim_amplitudes_by_ch
+
+        return self.stimulations
 
     def compute_impulse_response_matrix(self, neuron_locations):
         """
