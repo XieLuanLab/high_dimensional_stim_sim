@@ -222,7 +222,7 @@ helpers.plot_projections(
 
 overlap_list, _, _ = helpers.compute_all_overlaps(baseline_pca, stim_projected_list)
 
-plt.suptitle("")
+plt.suptitle("2.5 uA")
 # %%
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 plt.figure(figsize=(8, 5))

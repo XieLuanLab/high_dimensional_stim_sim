@@ -5,6 +5,8 @@ import shutil
 import matplotlib.pyplot as plt
 import nest
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
+from sklearn.decomposition import PCA
 
 import helpers
 from corcol_params.network_params import net_dict
@@ -27,7 +29,7 @@ PRESIM_TIME_MS = sim_dict["t_presim"]
 SIM_TIME_MS = sim_dict["t_sim"]
 WINDOW_MS = 500
 OVERLAP_MS = 400
-RASTER_PLOT_TIME_MS = 500
+RASTER_PLOT_TIME_MS = 5000
 RASTER_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + RASTER_PLOT_TIME_MS]
 FIRING_RATE_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + SIM_TIME_MS]
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
@@ -84,7 +86,7 @@ def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_pa
         pattern["times"],
         STIM_AMPLITUDES,
         SIM_TIME_MS,
-        interpattern_time_ms=400,
+        interpattern_time_ms=500,
     )
 
     electrodes.compute_impulse_response_matrix(network.neuron_locations)
@@ -130,7 +132,8 @@ def run_stimulation_simulation(network, electrodes, pattern_id, pattern, stim_pa
 
 
 # Define stimulation patterns
-interpulse_time_ms = 10
+interpulse_time_ms = np.floor(WINDOW_MS / 32)
+
 
 A_ch = np.arange(32)
 A_times = np.array(
@@ -147,12 +150,16 @@ pattern_dict = {
     "B": {"channels": B_ch, "times": B_times},
 }
 
+# %%
 # Main loop to run simulations
 pattern_results = {}
 for pattern_id, pattern in pattern_dict.items():
     base_path = os.path.join(os.getcwd(), "outputs", f"deterministic_{pattern_id}")
 
     baseline_path = os.path.join(base_path, "baseline")
+    baseline_spike_rates_pkl_path = os.path.join(
+        baseline_path, f"baseline_spike_rates.pkl"
+    )
 
     stim_path = os.path.join(base_path, "stimulation")
     spike_rates_pkl_path = os.path.join(stim_path, f"{pattern_id}_spike_rates.pkl")
@@ -180,38 +187,50 @@ for pattern_id, pattern in pattern_dict.items():
             network, electrodes, pattern_id, pattern, stim_path
         )
 
+    with open(baseline_spike_rates_pkl_path, "rb") as f:
+        baseline_spike_rates = pickle.load(f)
+
     with open(spike_rates_pkl_path, "rb") as f:
         stim_evoked_spike_rates = pickle.load(f)
 
     with open(stim_pulses_pkl_path, "rb") as f:
         stim_pulses = pickle.load(f)
 
-    pattern_results[pattern_id]["spike_rates"] = stim_evoked_spike_rates
+    pattern_results[pattern_id]["baseline_spike_rates"] = baseline_spike_rates
+    pattern_results[pattern_id]["stim_spike_rates"] = stim_evoked_spike_rates
     pattern_results[pattern_id]["stim_pulses"] = stim_pulses
 
 # %% Dimensionality reduction
-# variance_threshold = 0.95
-# pca = PCA(n_components=3)
-# # Fit PCA on baseline spike rates and transform the data
-# pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
-# baseline_pca = pca.transform(baseline_spike_rates)  # Transform baseline data
-# baseline_num_components = helpers.get_dimensionality(
-#     baseline_spike_rates, variance_threshold
-# )
 
-# stim_projected_list = []
-# stim_num_components_list = []
+baseline_rates = pattern_results[pattern_id]["baseline_spike_rates"]
 
-# for i, stim_spike_rates in enumerate(stim_spike_rates_list):
-#     # Project stimulus spike rates onto the PCA components derived from baseline
-#     stim_projected = pca.transform(stim_spike_rates)
-#     stim_projected_list.append(stim_projected)
+pattern_ids = ["A", "B"]
+variance_threshold = 0.95
+pca = PCA(n_components=3)
+# Fit PCA on baseline spike rates and transform the data
+pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
+baseline_pca = pca.transform(baseline_spike_rates)  # Transform baseline data
+baseline_num_components = helpers.get_dimensionality(
+    baseline_spike_rates, variance_threshold
+)
 
-#     num_components = helpers.get_dimensionality(
-#         stim_spike_rates, variance_threshold)
-#     stim_num_components_list.append(num_components)
+stim_projected_list = []
+stim_num_components_list = []
 
-# %%
+stim_spike_rates_list = [
+    pattern_results[pattern_id]["stim_spike_rates"] for pattern_id in pattern_ids
+]
+
+for i, stim_spike_rates in enumerate(stim_spike_rates_list):
+    # Project stimulus spike rates onto the PCA components derived from baseline
+    stim_projected = pca.transform(stim_spike_rates)
+    stim_projected_list.append(stim_projected)
+
+    num_components = helpers.get_dimensionality(stim_spike_rates, variance_threshold)
+    stim_num_components_list.append(num_components)
+
+# # %%
+# views = [(10, -100)]
 
 # helpers.plot_projections(
 #     baseline_pca,
@@ -223,3 +242,66 @@ for pattern_id, pattern in pattern_dict.items():
 #     ylim=[0.07, -0.2],
 #     zlim=[-0.05, 0.04],
 # )
+
+# %% Plot
+sigma = 1
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection="3d")
+
+# Apply Gaussian filter to baseline PCA components
+baseline_smoothed = np.empty_like(baseline_pca)
+for i in range(3):  # Loop over each PCA component (x, y, z)
+    baseline_smoothed[:, i] = gaussian_filter1d(baseline_pca[:, i], sigma=sigma)
+    # baseline_smoothed[:, i] = baseline_pca[:, i]
+
+# Plot the smoothed baseline trajectory
+ax.plot(
+    baseline_smoothed[:, 0],
+    baseline_smoothed[:, 1],
+    baseline_smoothed[:, 2],
+    color="k",
+    linewidth=0.5,
+    alpha=0.7,
+    label="Baseline Smoothed",
+)
+# First stim pattern
+stim_projected = stim_projected_list[0]
+stim_smoothed = np.empty_like(stim_projected)
+for i in range(3):
+    stim_smoothed[:, i] = gaussian_filter1d(stim_projected[:, i], sigma=sigma)
+    # stim_smoothed[:, i] = stim_projected[:, i]
+
+# Plot the smoothed stimulus trajectory
+ax.plot(
+    stim_smoothed[:, 0],
+    stim_smoothed[:, 1],
+    stim_smoothed[:, 2],
+    color="C1",
+    linewidth=0.5,
+    alpha=0.7,
+    label="Pattern A",
+)
+#  Second stim pattern
+
+stim_projected = stim_projected_list[1]
+stim_smoothed = np.empty_like(stim_projected)
+for i in range(3):
+    stim_smoothed[:, i] = gaussian_filter1d(stim_projected[:, i], sigma=sigma)
+    # stim_smoothed[:, i] = stim_projected[:, i]
+
+# Plot the smoothed stimulus trajectory
+ax.plot(
+    stim_smoothed[:, 0],
+    stim_smoothed[:, 1],
+    stim_smoothed[:, 2],
+    color="C0",
+    linewidth=0.5,
+    alpha=0.7,
+    label="Pattern B",
+)
+
+ax.set_title("3D Projection with Smoothed Trajectories")
+ax.set_xlabel("PC1")
+ax.set_ylabel("PC2")
+ax.legend()
+ax.set_zlabel("PC3")

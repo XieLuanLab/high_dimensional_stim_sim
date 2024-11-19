@@ -59,9 +59,9 @@ net_dict = {
     # "N_scaling": 0.02,
     # # factor to scale the indegrees
     # "K_scaling": 0.02,
-    "N_scaling": 0.02,
+    "N_scaling": 0.01,
     # factor to scale the indegrees
-    "K_scaling": 0.02,
+    "K_scaling": 0.01,
     # neuron model
     "neuron_model": "iaf_psc_exp",
     # names of the simulated neuronal populations

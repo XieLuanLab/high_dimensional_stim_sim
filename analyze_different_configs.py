@@ -32,7 +32,7 @@ for current in stim_currents:
     pca.fit(baseline_spike_rates)
     baseline_pca = pca.transform(baseline_spike_rates)
     baseline_num_components = helpers.get_dimensionality(
-        baseline_spike_rates, variance_threshold=0.85
+        baseline_spike_rates, variance_threshold=0.95
     )
 
     baseline_row = pd.DataFrame(
@@ -129,3 +129,48 @@ if len(stim_currents) % 2 != 0:
 
 plt.suptitle("Overlap vs N Groups for Different Currents", fontsize=16)
 plt.tight_layout()
+
+# %%
+
+# Create a single figure and axis for plotting
+fig, ax = plt.subplots(figsize=(8, 6))
+
+
+for i, current in enumerate(stim_currents):
+    # Filter the DataFrame for the current stimulation value
+    df_current = results_df[results_df["current"] == current]
+
+    # Drop rows with NaN values in 'n_groups' and 'overlap' columns
+    df_current = df_current.dropna(subset=["n_groups", "overlap"])
+
+    # Ensure columns are numeric
+    df_current["n_groups"] = pd.to_numeric(df_current["n_groups"], errors="coerce")
+    df_current["overlap"] = pd.to_numeric(df_current["overlap"], errors="coerce")
+
+    n_groups = df_current["n_groups"].values
+    overlap = df_current["overlap"].values
+
+    # Plot if data is available
+    if len(n_groups) > 0 and len(overlap) > 0:
+        ax.plot(
+            range(6),
+            overlap,
+            marker="o",
+            linestyle="-",
+            color=f"C{i}",
+            label=f"{current} µA",
+        )
+
+# Set axis labels and title
+ax.set_xlabel("N Groups")
+ax.set_xticks(range(6))
+ax.set_xticklabels(n_groups, rotation=45)
+ax.set_ylabel("Overlap")
+ax.set_title("Overlap vs N Groups for Different Currents")
+
+# Add legend
+ax.legend(title="Current (µA)")
+
+# Adjust layout for better visualization
+plt.tight_layout()
+plt.show()
