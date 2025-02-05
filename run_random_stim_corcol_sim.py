@@ -27,7 +27,7 @@ ch_coordinates = np.stack([ch_hcoords, ch_vcoords], axis=1)
 sigma_e_um = 2.76e-7
 conductivity_constant = 10
 STIM_CHANNELS = np.arange(32)
-STIM_AMPLITUDES = [2]  # uA
+STIM_AMPLITUDES = [1.5]  # uA
 STIM_POISSON_RATE_HZ = 8
 RANDOM_STIM = True  # else, deterministic
 
@@ -60,7 +60,12 @@ def amp_decay_func(amp_uA, dist_um):
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 
 nest.ResetKernel()
-base_path = os.path.join(os.getcwd(), "outputs", "data_8Hz_k10_scale005_[0.5]uA")
+
+Nscale = net_dict['N_scaling'] # assume K and N same 
+sim_time_s = int(sim_dict['t_sim'] / 1000)
+stim_amps_str = STIM_AMPLITUDES[0] if len(STIM_AMPLITUDES) > 0 else STIM_AMPLITUDES
+base_path = os.path.join(os.getcwd(), "outputs", 
+                         f"data_{STIM_POISSON_RATE_HZ}Hz_{Nscale}scale_{stim_amps_str}uA_{sim_time_s}s")
 
 sim_dict["data_path"] = os.path.join(base_path, "data_baseline")
 
