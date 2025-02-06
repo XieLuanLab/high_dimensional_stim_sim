@@ -446,68 +446,56 @@ def firing_rates(path, name, begin, end):
 
 
 def boxplot(path, populations, title=None):
-    """Creates a boxblot of the firing rates of all populations.
-
-    To create the boxplot, the firing rates of each neuron in each population
-    need to be computed with the function ``firing_rate()``.
+    """Creates a boxplot of the firing rates of all populations.
 
     Parameters
-    -----------
-    path
+    ----------
+    path : str
         Path where the firing rates are stored.
-    populations
+    populations : list
         Names of neuronal populations.
-
-    Returns
-    -------
-    None
-
+    title : str, optional
+        Title of the plot.
     """
     fs = 18
     pop_names = [string.replace("23", "2/3") for string in populations]
-    label_pos = list(range(len(populations), 0, -1))
+    label_pos = np.arange(1, len(populations) + 1)
     color_list = ["#af143c", "#595289"]
+
     medianprops = dict(linestyle="-", linewidth=2.5, color="black")
     meanprops = dict(linestyle="--", linewidth=2.5, color="lightgray")
 
     rates_per_neuron_rev = []
-    for i in np.arange(len(populations))[::-1]:
+    for i in range(len(populations)):
         rates_per_neuron_rev.append(
-            np.loadtxt(os.path.join(path, ("rate" + str(i) + ".dat")))
+            np.loadtxt(os.path.join(path, f"rate{i}.dat"))
         )
 
     plt.figure(figsize=(8, 6))
     bp = plt.boxplot(
         rates_per_neuron_rev,
-        0,
-        "rs",
-        0,
+        vert=False,  # Horizontal boxplot
+        patch_artist=True,  # Enables colored boxes
         medianprops=medianprops,
         meanprops=meanprops,
         meanline=True,
         showmeans=True,
     )
-    plt.setp(bp["boxes"], color="black")
+
     plt.setp(bp["whiskers"], color="black")
     plt.setp(bp["fliers"], color="red", marker="+")
 
-    # boxcolors
-    for i in np.arange(len(populations)):
-        boxX = []
-        boxY = []
-        box = bp["boxes"][i]
-        for j in list(range(5)):
-            boxX.append(box.get_xdata()[j])
-            boxY.append(box.get_ydata()[j])
-        boxCoords = list(zip(boxX, boxY))
-        k = i % 2
-        boxPolygon = Polygon(boxCoords, facecolor=color_list[k])
-        plt.gca().add_patch(boxPolygon)
-    plt.xlabel("firing rate [spikes/s]", fontsize=fs)
+    # Apply colors to boxes
+    for i, box in enumerate(bp["boxes"]):
+        box.set_facecolor(color_list[i % len(color_list)])  # Alternate colors
+
+    plt.xlabel("Firing Rate [spikes/s]", fontsize=fs)
     plt.yticks(label_pos, pop_names, fontsize=fs)
     plt.xticks(fontsize=fs)
+
     if title:
         plt.suptitle(title)
+
     plt.savefig(os.path.join(path, "box_plot.png"), dpi=300)
     plt.close()
 

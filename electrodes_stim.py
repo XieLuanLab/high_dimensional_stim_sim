@@ -217,6 +217,7 @@ class StimElectrodes:
 
         rounded_all_times = np.round(all_times, decimals=5)
         self.unique_timestamps = np.unique(rounded_all_times)
+        self.unique_timestamps = self.unique_timestamps[self.unique_timestamps > 0]
 
         T = len(self.unique_timestamps)
 
@@ -250,7 +251,7 @@ class StimElectrodes:
 
         self.induced_current_matrix = np.dot(self.H, self.X)
 
-    def get_current_generators(self, presim_time_ms):
+    def get_current_generators(self):
         """
         Generate NEST step current generators based on the induced current matrix, where each neuron is
         assigned its corresponding induced current over time.
@@ -273,14 +274,11 @@ class StimElectrodes:
 
         num_neurons = self.H.shape[0]
 
-        # Scale to ms and ensure float32
-        timestamps = np.round(self.unique_timestamps * 1000).astype("float32")
-        induced_currents = self.induced_current_matrix.astype(
-            "float32"
-        )  # Convert currents to float32
-
         if np.any(np.diff(self.unique_timestamps) <= 0.00001):
             raise ValueError("Non-increasing amplitude times detected!")
+            
+        if np.any(self.unique_timestamps <= 0):
+            raise ValueError("Non-positive timestamps detected!")
 
         current_generators = [
             nest.Create(

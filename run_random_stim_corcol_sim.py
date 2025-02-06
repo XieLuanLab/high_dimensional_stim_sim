@@ -27,8 +27,8 @@ ch_coordinates = np.stack([ch_hcoords, ch_vcoords], axis=1)
 sigma_e_um = 2.76e-7
 conductivity_constant = 10
 STIM_CHANNELS = np.arange(32)
-STIM_AMPLITUDES = [1.5]  # uA
-STIM_POISSON_RATE_HZ = 8
+STIM_AMPLITUDES = [2]  # uA
+STIM_POISSON_RATE_HZ = 15
 RANDOM_STIM = True  # else, deterministic
 
 PRESIM_TIME_MS = sim_dict["t_presim"]
@@ -144,9 +144,7 @@ for n_groups in N_GROUPS_LIST:
         electrodes.compute_stim_current_matrix()
         electrodes.calculate_induced_current_matrix()
 
-        current_generators = electrodes.get_current_generators(
-            presim_time_ms=PRESIM_TIME_MS
-        )
+        current_generators = electrodes.get_current_generators()
 
         network.simulate_current_input(
             current_generators, time_ms=SIM_TIME_MS
@@ -227,7 +225,12 @@ helpers.plot_projections(
 
 overlap_list, _, _ = helpers.compute_all_overlaps(baseline_pca, stim_projected_list)
 
-plt.suptitle("2.5 uA")
+plt.suptitle(f"{stim_amps_str} uA")
+
+plt.savefig(
+    os.path.join(base_path, f"pca_projection_ellipsoids.png")
+)
+plt.close()
 # %%
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 plt.figure(figsize=(8, 5))
@@ -237,6 +240,10 @@ plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Jaccard Index")
 plt.title("Volume Overlap")
 plt.legend().set_visible(False)
+plt.savefig(
+    os.path.join(base_path, f"volume overlap vs num ch.png")
+)
+plt.close()
 
 plt.figure(figsize=(8, 5))
 plt.plot(
@@ -252,3 +259,7 @@ plt.xlabel("Number of Stimulated Channels")
 plt.ylabel("Dimensionality")
 plt.title("Stimulus-Evoked vs Baseline Dimensionality")
 plt.legend()
+plt.savefig(
+    os.path.join(base_path, f"dimensionality vs num ch.png")
+)
+plt.close()
