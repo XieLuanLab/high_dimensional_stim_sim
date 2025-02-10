@@ -239,7 +239,7 @@ def plot_raster(path, name, begin, end, N_scaling, title=None, ax=None):
     None
 
     """
-    fontsize = 6
+    fontsize = 10
     ylabels = ["L2/3", "L4", "L5", "L6"]
     color_list = np.tile(["#595289", "#af143c"], 4)
 
@@ -781,9 +781,23 @@ def plot_trajectories(
         )
 
     ax.set_title("3D Projection with Smoothed Trajectories")
-    ax.set_xlabel("PC1")
-    ax.set_ylabel("PC2")
-    ax.set_zlabel("PC3")
+    
+    ax.set_xlabel("PC1", fontsize=8, labelpad=5)
+    ax.set_ylabel("PC2", fontsize=8, labelpad=5)
+    ax.set_zlabel("PC3", fontsize=8, labelpad=10)
+    
+    import matplotlib.ticker as ticker
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=1))  
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=2))  
+    ax.zaxis.set_major_locator(ticker.MaxNLocator(nbins=2))  
+    
+    ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+    ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+    ax.zaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+    
+    ax.tick_params(axis="x", labelsize=8, pad=4)
+    ax.tick_params(axis="y", labelsize=8, pad=2)
+    ax.tick_params(axis="z", labelsize=8, pad=8)
 
     return ax
 
@@ -936,8 +950,8 @@ def plot_projections(
     )
 
     for view_index, view in enumerate(views):
-        fig = plt.figure(figsize=(12, 8))
-        gs = GridSpec(2, 3, figure=fig, hspace=0.3, wspace=0.2)
+        fig = plt.figure(figsize=(6, 4))
+        gs = GridSpec(2, 3, figure=fig, hspace=0.5, wspace=0.3)
 
         for i, stim_projected in enumerate(stim_projected_list):
             ax = fig.add_subplot(gs[i], projection="3d")
@@ -958,7 +972,7 @@ def plot_projections(
                 view,
             )
 
-            ax.set_title(f"{N_GROUPS_LIST[i]} stim channels", fontsize=12)
+            ax.set_title(f"{N_GROUPS_LIST[i]} stim channels", fontsize=10)
 
         plt.tight_layout()
         plt.suptitle(f"PCA Projection (View {view_index + 1})", fontsize=16)
@@ -1020,3 +1034,6 @@ def compute_jaccard_overlap(mean_1, cov_1, mean_2, cov_2, n_samples=10000):
     jaccard_index = intersection_volume / union_volume
 
     return jaccard_index, samples_1, samples_2
+
+
+    

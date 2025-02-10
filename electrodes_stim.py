@@ -295,7 +295,7 @@ class StimElectrodes:
         return current_generators
 
     def plot_stim_raster(self, time_range_ms=None, ax=None, title=None):
-        fontsize = 6
+        fontsize = 10
         stim_channel_indices = list(self.stim_onset_times_by_ch.keys())
         num_stim_channels = len(stim_channel_indices)
 

@@ -27,8 +27,8 @@ ch_coordinates = np.stack([ch_hcoords, ch_vcoords], axis=1)
 sigma_e_um = 2.76e-7
 conductivity_constant = 10
 STIM_CHANNELS = np.arange(32)
-STIM_AMPLITUDES = [2]  # uA
-STIM_POISSON_RATE_HZ = 15
+STIM_AMPLITUDES = [1.5]  # uA
+STIM_POISSON_RATE_HZ = 8
 RANDOM_STIM = True  # else, deterministic
 
 PRESIM_TIME_MS = sim_dict["t_presim"]
