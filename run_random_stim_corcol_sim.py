@@ -27,7 +27,7 @@ ch_coordinates = np.stack([ch_hcoords, ch_vcoords], axis=1)
 sigma_e_um = 2.76e-7
 conductivity_constant = 10
 STIM_CHANNELS = np.arange(32)
-STIM_AMPLITUDES = [1.5]  # uA
+STIM_AMPLITUDES = [2]  # uA
 STIM_POISSON_RATE_HZ = 8
 RANDOM_STIM = True  # else, deterministic
 
@@ -186,7 +186,7 @@ for n_groups in N_GROUPS_LIST:
 
 
 # %% Dimensionality reduction
-variance_threshold = 0.95
+variance_threshold = 0.85
 pca = PCA(n_components=3)
 # Fit PCA on baseline spike rates and transform the data
 pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
@@ -207,7 +207,6 @@ for i, stim_spike_rates in enumerate(stim_spike_rates_list):
     stim_num_components_list.append(num_components)
 
 # %% # %% Visualization
-# views = [(20, -60), (50, 85)]
 views = [(12, -36), (15, -10)]
 views = [(10, -100)]
 

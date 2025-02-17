@@ -35,7 +35,7 @@ sim_dict = {
     # 1s should be enough
     "t_presim": 1000,
     # simulation time (in ms)
-    "t_sim": 30000.0,
+    "t_sim": 60000.0,
     # resolution of the simulation (in ms)
     "sim_resolution": 0.1,  # 0.1
     # list of recording devices, default is 'spike_recorder'. A 'voltmeter' can

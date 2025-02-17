@@ -40,12 +40,11 @@ def amp_decay_func(amp_uA, dist_um):
         * conductivity_constant
         / (4 * np.pi * sigma_e_um * (dist_um + 20))
     )
-#%%
-# Plot baseline from folder 
+#%% Fig 1b
 
 output_name = 'data_10Hz_0.05scale_2uA_60s'
 base_path = os.path.join(
-    os.getcwd(), "outputs", output_name
+    os.getcwd(), "data", output_name
 )
 save_path = 'figures'
 
@@ -92,7 +91,7 @@ ax.set_xlabel('Time (ms)')
 plt.tight_layout()
 plt.savefig(os.path.join(save_path, "baseline_raster.svg"))
 
-#%% Plot stim condition raster plots 
+#%% Plot stim condition raster plots (Fig 1b continued) 
 stim_spike_rates_list = []
 stim_pulse_params = {"pulse_width_ms": 0.2, "ipi_ms": 0.2}
 NN_GROUPS_LIST = [1, 2, 4, 8, 16, 32]  # number of stim electrode groups
@@ -148,7 +147,7 @@ for n_groups in N_GROUPS_LIST:
     plt.savefig(os.path.join(save_path, f"stim_{n_groups}_groups_raster.svg"))    
     stim_spike_rates_list.append(stim_evoked_spike_rates)
 
-#%% Plot PCA
+#%% Plot PCA overlap (Fig 1c)
 
 variance_threshold = 0.85
 pca = PCA(n_components=3)
@@ -170,7 +169,6 @@ for i, stim_spike_rates in enumerate(stim_spike_rates_list):
     num_components = helpers.get_dimensionality(stim_spike_rates, variance_threshold)
     stim_num_components_list.append(num_components)
 
-# %% # %% Visualization
 views = [(15, -135)]
 
 helpers.plot_projections(
@@ -191,7 +189,7 @@ plt.suptitle("")
 
 plt.savefig(os.path.join(save_path, "pca_projection_ellipsoids.svg"))
 plt.close()
-# %%
+# %% Fig 1d
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 
 plt.figure(figsize=(4, 3.5))
@@ -201,14 +199,14 @@ plt.xlabel("Number of Electrode Groups", fontsize=10)
 plt.ylabel("Volume Overlap\n(Jaccard Index)", fontsize=10)
 plt.tight_layout()
 plt.savefig(os.path.join(save_path, "overlap.svg"))
-#%%
+#%% Fig 1e
 plt.figure(figsize=(4, 3.5))
 plt.plot(
     np.arange(6), stim_num_components_list, marker="o", label="Evoked Dimensionality"
 )
 plt.axhline(
     baseline_num_components, color="r", linestyle="--", label="Baseline Dimensionality"
-)  # Add baseline reference line
+)  
 
 plt.yticks(fontsize=10)
 plt.xticks(np.arange(6), labels=stim_channels, fontsize=10)
