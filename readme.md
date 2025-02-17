@@ -12,7 +12,7 @@ The dataset used to generate figures in our publication is available at:
 ## Installation and Setup
 Dependencies:
 - NEST simulator 
-- NumPy, SciPy, Matplotlib 
+- NumPy, SciPy, Matplotlib, SciKit-Learn
 
 ## Installation  (Windows via WSL2)
 1. Install WSL2 (Ubuntu recommended)
@@ -25,7 +25,7 @@ source ~/.bashrc
 ```
 3. Create a conda environment and install dependencies:
 ```
-conda create --name stim_sim -c conda-forge nest-simulator numpy scipy matplotlib
+conda create --name stim_sim -c conda-forge nest-simulator numpy scipy matplotlib scikit-learn
 conda activate stim_sim
 ```
 4. (Optional) Install Spyder. 
