@@ -295,7 +295,7 @@ class StimElectrodes:
         return current_generators
 
     def plot_stim_raster(self, time_range_ms=None, ax=None, title=None):
-        fontsize = 10
+        fontsize = 12
         stim_channel_indices = list(self.stim_onset_times_by_ch.keys())
         num_stim_channels = len(stim_channel_indices)
 
@@ -307,8 +307,9 @@ class StimElectrodes:
 
         for i, ch_idx in enumerate(stim_channel_indices):
             stim_train = self.stim_onset_times_by_ch[ch_idx]
-            ax.plot(stim_train, [i + 1] * len(stim_train), "|", markersize=1, color="k")
-
+            # ax.plot(stim_train, [i + 1] * len(stim_train), "|", markersize=2, linewidth=40, color="k")
+            ax.vlines(stim_train, i + 0.75, i + 1.25, colors="k", linewidth=1.5)
+            
         if time_range_ms is not None:
             ax.set_xlim(time_range_ms[0], time_range_ms[1])
 

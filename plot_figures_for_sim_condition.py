@@ -1,6 +1,7 @@
 import os
 import pickle
 import shutil
+import re
 
 import matplotlib.pyplot as plt
 import nest
@@ -27,13 +28,10 @@ STIM_POISSON_RATE_HZ = 8
 RANDOM_STIM = True  # else, deterministic
 
 PRESIM_TIME_MS = sim_dict["t_presim"]
-SIM_TIME_MS = sim_dict["t_sim"]
 WINDOW_MS = 500
 OVERLAP_MS = 400
 RASTER_PLOT_TIME_MS = 500
 N_GROUPS_LIST = [1, 2, 4, 8, 16, 32]  # number of stim electrode groups
-RASTER_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + RASTER_PLOT_TIME_MS]
-FIRING_RATE_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + SIM_TIME_MS]
 
 def amp_decay_func(amp_uA, dist_um):
     return (
@@ -44,11 +42,21 @@ def amp_decay_func(amp_uA, dist_um):
     )
 #%%
 # Plot baseline from folder 
-output_name = 'data_18Hz_0.02scale_1uA_30s'
+
+output_name = 'data_10Hz_0.05scale_2uA_60s'
 base_path = os.path.join(
     os.getcwd(), "outputs", output_name
 )
 save_path = 'figures'
+
+
+SIM_TIME_MS = int(re.search(r'(\d+)(?=s$)', output_name).group(1)) * 1000
+SCALING = float(re.search(r'([\d\.]+)(?=scale)', output_name).group(1))
+RASTER_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + RASTER_PLOT_TIME_MS]
+FIRING_RATE_INTERVAL = [PRESIM_TIME_MS, PRESIM_TIME_MS + SIM_TIME_MS]
+sim_dict['t_sim'] = SIM_TIME_MS
+net_dict['N_scaling'] = SCALING
+net_dict['K_scaling'] = SCALING
 
 # Baseline
 nest.ResetKernel()
@@ -65,13 +73,13 @@ baseline_spike_rates = helpers.compute_spike_rates(
     presim_time_ms=PRESIM_TIME_MS,
 )
 
-fig, ax = plt.subplots(1, 1, figsize=(3, 2))
+fig, ax = plt.subplots(1, 1, figsize=(3, 2.25))
 helpers.plot_raster(
     sim_dict["data_path"],
     "spike_recorder",
     RASTER_INTERVAL[0],
     RASTER_INTERVAL[1],
-    net_dict["N_scaling"],
+    SCALING,
     title='Baseline activity',
     ax=ax
 )
@@ -137,8 +145,7 @@ for n_groups in N_GROUPS_LIST:
     axes[1].set_xticklabels([f"{int(tick - begin)}" for tick in xticks])
     
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f"stim_{n_groups}_groups_raster.svg"))
-    
+    plt.savefig(os.path.join(save_path, f"stim_{n_groups}_groups_raster.svg"))    
     stim_spike_rates_list.append(stim_evoked_spike_rates)
 
 #%% Plot PCA
@@ -146,8 +153,8 @@ for n_groups in N_GROUPS_LIST:
 variance_threshold = 0.85
 pca = PCA(n_components=3)
 # Fit PCA on baseline spike rates and transform the data
-pca.fit(baseline_spike_rates)  # Learn the structure of baseline data
-baseline_pca = pca.transform(baseline_spike_rates)  # Transform baseline data
+pca.fit(baseline_spike_rates)  
+baseline_pca = pca.transform(baseline_spike_rates) 
 baseline_num_components = helpers.get_dimensionality(
     baseline_spike_rates, variance_threshold
 )
@@ -164,44 +171,38 @@ for i, stim_spike_rates in enumerate(stim_spike_rates_list):
     stim_num_components_list.append(num_components)
 
 # %% # %% Visualization
-# views = [(20, -60), (50, 85)]
-views = [(12, -36), (15, -10)]
-views = [(10, -100)]
+views = [(15, -135)]
 
-# Plot and save PCA projections for each view
 helpers.plot_projections(
     baseline_pca,
     stim_projected_list,
     sim_dict["data_path"],
     "pca_projection",
     views=views,
-    xlim=[-0.03, 0.03],
-    ylim=[0.4, -0.3],
-    zlim=[-0.03, 0.015],
+    xlim=[-0.04, 0.03],
+    ylim=[0.05, -0.03],
+    zlim=[-0.025, 0.03],
 )
-
 
 overlap_list, _, _ = helpers.compute_all_overlaps(baseline_pca, stim_projected_list)
 
 stim_amps_str = STIM_AMPLITUDES[0] if len(STIM_AMPLITUDES) > 0 else STIM_AMPLITUDES
-
 plt.suptitle("")
 
 plt.savefig(os.path.join(save_path, "pca_projection_ellipsoids.svg"))
-# plt.close()
+plt.close()
 # %%
 stim_channels = [1, 2, 4, 8, 16, 32]  # Number of stimulation channels
 
-plt.figure(figsize=(3, 2))
+plt.figure(figsize=(4, 3.5))
 plt.plot(np.arange(6), overlap_list, marker="o")
 plt.xticks(np.arange(6), labels=stim_channels, fontsize=10)
-plt.xlabel("Number of Stimulated Channels", fontsize=10)
+plt.xlabel("Number of Electrode Groups", fontsize=10)
 plt.ylabel("Volume Overlap\n(Jaccard Index)", fontsize=10)
-# plt.title("Volume Overlap", fontsize=10)
 plt.tight_layout()
 plt.savefig(os.path.join(save_path, "overlap.svg"))
-
-plt.figure(figsize=(3, 2))
+#%%
+plt.figure(figsize=(4, 3.5))
 plt.plot(
     np.arange(6), stim_num_components_list, marker="o", label="Evoked Dimensionality"
 )
@@ -209,10 +210,10 @@ plt.axhline(
     baseline_num_components, color="r", linestyle="--", label="Baseline Dimensionality"
 )  # Add baseline reference line
 
+plt.yticks(fontsize=10)
 plt.xticks(np.arange(6), labels=stim_channels, fontsize=10)
-plt.xlabel("Number of Stimulated Channels", fontsize=10)
+plt.xlabel("Number of Electrode Groups", fontsize=10)
 plt.ylabel("Dimensionality", fontsize=10)
-# plt.title("Stimulus-Evoked vs Baseline Dimensionality", fontsize=10)
-plt.legend(fontsize=7, loc='lower right')
+plt.legend(fontsize=9, loc='lower right')
 plt.tight_layout()
 plt.savefig(os.path.join(save_path, "dimensionality.svg"))

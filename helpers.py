@@ -239,7 +239,7 @@ def plot_raster(path, name, begin, end, N_scaling, title=None, ax=None):
     None
 
     """
-    fontsize = 10
+    fontsize = 12
     ylabels = ["L2/3", "L4", "L5", "L6"]
     color_list = np.tile(["#595289", "#af143c"], 4)
 
@@ -257,14 +257,15 @@ def plot_raster(path, name, begin, end, N_scaling, title=None, ax=None):
         print("  Only spikes of neurons in steps of {} are shown.".format(stp))
 
     if ax is None:
-        fig, ax = plt.subplots(figsize=(3, 2))
+        fig, ax = plt.subplots(figsize=(3.5, 2.5))
 
     for i, n in enumerate(sd_names):
         times = data[i]["time_ms"]
         neurons = np.abs(data[i]["sender"] - last_node_id) + 1
         ax.plot(times[::stp], neurons[::stp], "|", color=color_list[i], markersize=1)
     # ax.set_xlabel("time [ms]", fontsize=fs)
-    ax.set_xlim([begin, end])
+    ax.set_xlim([begin, end]) 
+    
     ax.set_yticks(label_pos)
     ax.tick_params(axis="x", labelsize=fontsize)
     ax.set_yticklabels(ylabels, fontsize=fontsize)
@@ -782,9 +783,9 @@ def plot_trajectories(
 
     ax.set_title("3D Projection with Smoothed Trajectories")
     
-    ax.set_xlabel("PC1", fontsize=8, labelpad=5)
-    ax.set_ylabel("PC2", fontsize=8, labelpad=5)
-    ax.set_zlabel("PC3", fontsize=8, labelpad=10)
+    ax.set_xlabel("PC1", fontsize=8, labelpad=2)
+    ax.set_ylabel("PC2", fontsize=8, labelpad=0)
+    ax.set_zlabel("PC3", fontsize=8, labelpad=-4)
     
     import matplotlib.ticker as ticker
     ax.xaxis.set_major_locator(ticker.MaxNLocator(nbins=1))  
@@ -795,9 +796,9 @@ def plot_trajectories(
     ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
     ax.zaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
     
-    ax.tick_params(axis="x", labelsize=8, pad=4)
-    ax.tick_params(axis="y", labelsize=8, pad=2)
-    ax.tick_params(axis="z", labelsize=8, pad=8)
+    ax.tick_params(axis="x", labelsize=8, pad=0)
+    ax.tick_params(axis="y", labelsize=8, pad=-2)
+    ax.tick_params(axis="z", labelsize=8, pad=0)
 
     return ax
 
@@ -950,8 +951,8 @@ def plot_projections(
     )
 
     for view_index, view in enumerate(views):
-        fig = plt.figure(figsize=(6, 4))
-        gs = GridSpec(2, 3, figure=fig, hspace=0.5, wspace=0.3)
+        fig = plt.figure(figsize=(7, 5))
+        gs = GridSpec(2, 3, figure=fig, hspace=0, wspace=0.32)
 
         for i, stim_projected in enumerate(stim_projected_list):
             ax = fig.add_subplot(gs[i], projection="3d")
@@ -972,11 +973,9 @@ def plot_projections(
                 view,
             )
 
-            ax.set_title(f"{N_GROUPS_LIST[i]} stim channels", fontsize=10)
+            ax.set_title(f"{N_GROUPS_LIST[i]} electrode groups", fontsize=12)
 
-        plt.tight_layout()
-        plt.suptitle(f"PCA Projection (View {view_index + 1})", fontsize=16)
-
+        
         # Save the figure for the current view
         file_path = os.path.join(output_dir, f"{file_name}_view_{view_index + 1}.png")
         plt.savefig(file_path)
