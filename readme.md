@@ -32,7 +32,7 @@ conda activate stim_sim
 `conda install spyder`
 5. Clone the repository.
 ```
-git clone https://github.com/your-repo-link/high_dimensional_stim_sim.git
+git clone https://github.com/oaaij-gnahz/high_dimensional_stim_sim.git
 cd high_dimensional_stim_sim
 ```
 
@@ -42,8 +42,9 @@ cd high_dimensional_stim_sim
 2. Create a folder inside the cloned repository:
 ```
 mkdir data
+mkdir figures
 ```
-3. Copy/paste the downloaded dataset into the newly created data folder.
+3. Copy/paste the downloaded dataset into the newly created `data` folder.
 4. Run plot_figures_for_sim_condition.py.
 
 ## Running a New Simulation from Scratch
