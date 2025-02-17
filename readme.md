@@ -32,7 +32,7 @@ conda activate stim_sim
 `conda install spyder`
 5. Clone the repository.
 ```
-git clone https://github.com/oaaij-gnahz/high_dimensional_stim_sim.git
+git clone https://github.com/XieLuanLab/high_dimensional_stim_sim.git
 cd high_dimensional_stim_sim
 ```
 
